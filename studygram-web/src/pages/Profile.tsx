@@ -1,0 +1,334 @@
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState } from '../features/store';
+import { updateProfile } from '../../src/features/authSlice';
+import { PostCard } from '../components/PostCard';
+import { Edit2, Grid, Bookmark, BookOpen, Camera } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, TextField, Button } from '@mui/material';
+import { apiClient } from '../utils/apiClient';
+
+export const Profile: React.FC = () => {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state: RootState) => state.auth);
+  
+  const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
+  const [editOpen, setEditOpen] = useState(false);
+  const [fullName, setFullName] = useState(user?.fullName || '');
+  const [bio, setBio] = useState(user?.bio || '');
+  const [profileData, setProfileData] = useState<any>(user);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [savedPosts, setSavedPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.username) {
+      fetchProfileAndPosts();
+    }
+  }, [user]);
+
+  const fetchProfileAndPosts = async () => {
+    setLoading(true);
+    try {
+      // Get profile
+      const profRes = await apiClient.get(`/profile/${user?.username}`);
+      if (profRes && profRes.data) {
+        setProfileData(profRes.data);
+      }
+
+      // Get posts feed (filter locally for user posts)
+      const postsRes = await apiClient.get('/posts/feed');
+      if (postsRes && postsRes.data) {
+        const mapped = postsRes.data.map((p: any) => ({
+          id: String(p.id),
+          authorName: p.user?.name || 'Anonymous User',
+          authorUsername: p.user?.username || 'anonymous',
+          authorAvatar: p.user?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          type: p.contentType === 'note' ? 'notes' : p.contentType,
+          mediaUrl: p.mediaUrl,
+          notesTitle: p.title,
+          notesPages: 4,
+          caption: p.description,
+          category: p.category?.name || 'General',
+          tags: [],
+          likesCount: p.likesCount || 0,
+          hasLiked: false,
+          hasSaved: false,
+          createdAt: new Date(p.createdAt).toLocaleDateString()
+        }));
+
+        setPosts(mapped.filter((p: any) => p.authorUsername === user?.username));
+      }
+
+      // Get saved posts
+      const savedRes = await apiClient.get('/posts/saved');
+      if (savedRes && savedRes.data) {
+        const mappedSaved = savedRes.data.map((p: any) => ({
+          id: String(p.id),
+          authorName: p.user?.name || 'Anonymous User',
+          authorUsername: p.user?.username || 'anonymous',
+          authorAvatar: p.user?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          type: p.contentType === 'note' ? 'notes' : p.contentType,
+          mediaUrl: p.mediaUrl,
+          notesTitle: p.title,
+          notesPages: 4,
+          caption: p.description,
+          category: 'Bookmarked',
+          tags: [],
+          likesCount: p.likesCount || 0,
+          hasLiked: false,
+          hasSaved: true,
+          createdAt: new Date(p.createdAt).toLocaleDateString()
+        }));
+        setSavedPosts(mappedSaved);
+      }
+
+    } catch (err) {
+      console.error('Error fetching profile detail:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await apiClient.put('/profile', {
+        name: fullName,
+        bio: bio
+      });
+      if (response && response.data) {
+        dispatch(updateProfile({ fullName, bio }));
+        setProfileData((prev: any) => ({
+          ...prev,
+          name: fullName,
+          bio: bio
+        }));
+      }
+      setEditOpen(false);
+    } catch (e) {
+      console.error('Error saving profile changes:', e);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      try {
+        const res = await apiClient.put('/profile', formData);
+        if (res && res.data) {
+          const newAvatar = res.data.profileImage;
+          dispatch(updateProfile({ avatarUrl: newAvatar }));
+          setProfileData((prev: any) => ({ ...prev, profileImage: newAvatar }));
+        }
+      } catch (err) {
+        console.error('Error updating avatar:', err);
+      }
+    }
+  };
+
+  const handleCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      try {
+        const res = await apiClient.put('/profile', formData);
+        if (res && res.data) {
+          const newCover = res.data.coverImage;
+          dispatch(updateProfile({ coverUrl: newCover }));
+          setProfileData((prev: any) => ({ ...prev, coverImage: newCover, coverUrl: newCover }));
+        }
+      } catch (err) {
+        console.error('Error updating banner:', err);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Hidden File Inputs */}
+      <input type="file" id="cover-upload" accept="image/*" className="hidden" onChange={handleCoverChange} />
+      <input type="file" id="avatar-upload" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+
+      {/* Profile Header Cards */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+        {/* Cover Photo */}
+        <div className="h-40 md:h-52 relative bg-slate-200 dark:bg-slate-950">
+          {profileData?.coverImage || profileData?.coverUrl ? (
+            <img src={profileData.coverImage || profileData.coverUrl} alt="Cover" className="w-full h-full object-cover" />
+          ) : null}
+          <button 
+            onClick={() => document.getElementById('cover-upload')?.click()}
+            className="absolute right-4 bottom-4 p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 cursor-pointer hover:scale-105 transition"
+          >
+            <Camera className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Profile Info Details */}
+        <div className="px-6 pb-6 relative">
+          {/* Avatar */}
+          <div className="relative -mt-16 md:-mt-20 mb-4 inline-block">
+            <img
+              src={profileData?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
+              alt="Avatar"
+              className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-lg"
+            />
+            <button 
+              onClick={() => document.getElementById('avatar-upload')?.click()}
+              className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 rounded-full text-white ring-2 ring-white dark:ring-slate-900 cursor-pointer hover:scale-105 transition"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-extrabold font-heading">{profileData?.name || profileData?.fullName}</h2>
+              <p className="text-sm text-slate-500">@{profileData?.username}</p>
+            </div>
+            
+            <button
+              onClick={() => {
+                setFullName(profileData?.name || profileData?.fullName || '');
+                setBio(profileData?.bio || '');
+                setEditOpen(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 font-semibold py-2 px-4 rounded-xl text-sm transition cursor-pointer"
+            >
+              <Edit2 className="w-4 h-4" />
+              Edit Profile
+            </button>
+          </div>
+
+          {/* Bio */}
+          <p className="mt-4 text-sm text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
+            {profileData?.bio || 'No bio added yet.'}
+          </p>
+
+          {/* Stats */}
+          <div className="flex items-center gap-6 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4">
+            <div>
+              <span className="block text-lg font-bold font-heading">{posts.length}</span>
+              <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Posts</span>
+            </div>
+            <div>
+              <span className="block text-lg font-bold font-heading">{profileData?.followersCount || 0}</span>
+              <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Followers</span>
+            </div>
+            <div>
+              <span className="block text-lg font-bold font-heading">{profileData?.followingCount || 0}</span>
+              <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Following</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800">
+        <button
+          onClick={() => setActiveTab('posts')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 font-semibold text-sm border-b-2 transition-all cursor-pointer ${
+            activeTab === 'posts'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Grid className="w-4 h-4" />
+          My Uploads ({posts.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('saved')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 font-semibold text-sm border-b-2 transition-all cursor-pointer ${
+            activeTab === 'saved'
+              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          <Bookmark className="w-4 h-4" />
+          Saved Content ({savedPosts.length})
+        </button>
+      </div>
+
+      {/* Tab Contents */}
+      <div className="space-y-6">
+        {loading ? (
+          <div className="text-center py-12 text-slate-500 font-semibold">
+            Loading profile content...
+          </div>
+        ) : activeTab === 'posts' ? (
+          posts.length === 0 ? (
+            <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl">
+              <BookOpen className="w-12 h-12 text-slate-350 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">No posts uploaded yet</p>
+            </div>
+          ) : (
+            posts.map(post => (
+              <PostCard key={post.id} post={post} />
+            ))
+          )
+        ) : (
+          savedPosts.length === 0 ? (
+            <div className="text-center py-12 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl">
+              <Bookmark className="w-12 h-12 text-slate-350 mx-auto mb-3" />
+              <p className="text-slate-500 font-medium">No bookmarked posts yet</p>
+            </div>
+          ) : (
+            savedPosts.map(post => (
+              <PostCard key={post.id} post={post} />
+            ))
+          )
+        )}
+      </div>
+
+      {/* Edit Profile Dialog */}
+      <Dialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: '24px',
+              p: 1,
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ fontFamily: 'Outfit', fontWeight: 700 }}>Edit Profile</DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleEditSubmit} className="space-y-4 mt-2">
+            <TextField
+              label="Full Name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button onClick={() => setEditOpen(false)} variant="text">
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained" color="primary">
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
