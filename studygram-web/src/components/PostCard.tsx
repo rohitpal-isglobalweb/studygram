@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../features/store';
 import { apiClient } from '../utils/apiClient';
+import { Avatar } from './Avatar';
 import {
   Heart,
   MessageCircle,
@@ -53,20 +54,30 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const { user } = useSelector((state: RootState) => state.auth);
   
   const [likesCount, setLikesCount] = useState(post.likesCount);
-  const [hasLiked, setHasLiked] = useState(post.hasLiked);
-  const [hasSaved, setHasSaved] = useState(post.hasSaved);
+  const [hasLiked, setHasLiked] = useState(() => {
+    const localLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
+    return post.hasLiked || localLikes.includes(String(post.id));
+  });
+  const [hasSaved, setHasSaved] = useState(() => {
+    const localSaves = JSON.parse(localStorage.getItem('user_saves') || '[]');
+    return post.hasSaved || localSaves.includes(String(post.id));
+  });
   const [comments, setComments] = useState<CommentData[]>([]);
   const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
 
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  const isOwner = user && user.username === post.authorUsername;
 
   // Sync initial props
   useEffect(() => {
     setLikesCount(post.likesCount);
-    setHasLiked(post.hasLiked);
-    setHasSaved(post.hasSaved);
+    const localLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
+    setHasLiked(post.hasLiked || localLikes.includes(String(post.id)));
+    const localSaves = JSON.parse(localStorage.getItem('user_saves') || '[]');
+    setHasSaved(post.hasSaved || localSaves.includes(String(post.id)));
   }, [post]);
 
   // Load comments dynamically when dialog opens
@@ -83,7 +94,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
         const mapped = response.data.map((c: any) => ({
           id: String(c.id),
           authorName: c.user?.name || 'User',
-          authorAvatar: c.user?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          authorAvatar: c.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=6366f1&color=fff`,
           content: c.comment,
           timestamp: new Date(c.createdAt).toLocaleDateString()
         }));
@@ -98,8 +109,18 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const handleLike = async () => {
     try {
       const originalHasLiked = hasLiked;
-      setHasLiked(!hasLiked);
-      setLikesCount(prev => prev + (!originalHasLiked ? 1 : -1));
+      const newLiked = !originalHasLiked;
+      setHasLiked(newLiked);
+      setLikesCount(prev => prev + (newLiked ? 1 : -1));
+
+      const localLikes = JSON.parse(localStorage.getItem('user_likes') || '[]');
+      if (newLiked) {
+        if (!localLikes.includes(String(post.id))) localLikes.push(String(post.id));
+      } else {
+        const idx = localLikes.indexOf(String(post.id));
+        if (idx > -1) localLikes.splice(idx, 1);
+      }
+      localStorage.setItem('user_likes', JSON.stringify(localLikes));
       
       await apiClient.post('/posts/like', { postId: Number(post.id) });
     } catch (err) {
@@ -109,7 +130,19 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   const handleSave = async () => {
     try {
-      setHasSaved(!hasSaved);
+      const originalHasSaved = hasSaved;
+      const newSaved = !originalHasSaved;
+      setHasSaved(newSaved);
+
+      const localSaves = JSON.parse(localStorage.getItem('user_saves') || '[]');
+      if (newSaved) {
+        if (!localSaves.includes(String(post.id))) localSaves.push(String(post.id));
+      } else {
+        const idx = localSaves.indexOf(String(post.id));
+        if (idx > -1) localSaves.splice(idx, 1);
+      }
+      localStorage.setItem('user_saves', JSON.stringify(localSaves));
+
       await apiClient.post('/posts/save', { postId: Number(post.id) });
     } catch (err) {
       console.error('Error toggling save:', err);
@@ -156,15 +189,28 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
     }
   };
 
+  const handleDeletePost = async () => {
+    setAnchorEl(null);
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    
+    try {
+      await apiClient.delete(`/posts/${post.id}`);
+      window.location.reload(); 
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      alert('Failed to delete post.');
+    }
+  };
+
   return (
-    <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-md smooth-transition">
+    <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
       {/* Post Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
-          <img
+          <Avatar
             src={post.authorAvatar}
-            alt={post.authorName}
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/10"
+            name={post.authorName || 'User'}
+            className="w-10 h-10 ring-2 ring-indigo-500/10"
           />
           <div>
             <h3 className="text-sm font-semibold hover:text-indigo-600 cursor-pointer">{post.authorName}</h3>
@@ -200,72 +246,72 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
       {/* Media Rendering */}
       {post.type === 'notes' ? (
-        <div className="relative border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-6 flex flex-col items-center justify-center min-h-[220px]">
-          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl flex items-start gap-4">
-            <div className="p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-xl text-indigo-600 dark:text-indigo-400">
-              <BookOpen className="w-8 h-8" />
+        <div className="relative border-y border-slate-100 dark:border-slate-800 bg-gradient-to-br from-indigo-50 to-slate-100 dark:from-slate-800 dark:to-slate-950 p-8 flex flex-col items-center justify-center min-h-[250px]">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-700 rounded-2xl p-6 shadow-xl shadow-slate-200/50 dark:shadow-black/50 flex flex-col items-center text-center gap-4 hover:-translate-y-1 transition-transform">
+            <div className="p-4 bg-indigo-100 dark:bg-indigo-900/50 rounded-2xl text-indigo-600 dark:text-indigo-400 shadow-inner">
+              <BookOpen className="w-10 h-10" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-slate-800 dark:text-slate-100 truncate">{post.notesTitle}</h4>
-              <p className="text-xs text-slate-500 mt-1">{post.notesPages || 4} pages • PDF Document</p>
+              <h4 className="font-extrabold font-heading text-lg text-slate-800 dark:text-slate-100 truncate w-full">{post.notesTitle}</h4>
+              <p className="text-sm font-semibold text-slate-500 mt-1">{post.notesPages || 4} pages • PDF Document</p>
               <a 
                 href={post.mediaUrl} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="mt-3 inline-block text-xs font-semibold text-indigo-600 hover:text-indigo-500 border border-indigo-200 dark:border-indigo-800 rounded-lg px-3 py-1.5 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer"
+                className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-white hover:text-white border border-transparent rounded-xl px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 shadow-md transition-colors"
               >
-                View Notes
+                View Study Notes
               </a>
             </div>
           </div>
         </div>
       ) : post.type === 'video' ? (
-        <div className="relative border-y border-slate-200 dark:border-slate-800 bg-black flex items-center justify-center aspect-video max-h-[400px]">
-          <video src={post.mediaUrl} controls className="w-full h-full max-h-[400px] object-contain" />
+        <div className="relative bg-black flex items-center justify-center w-full max-h-[600px]">
+          <video src={post.mediaUrl} controls className="w-full h-full max-h-[600px] object-contain" />
         </div>
       ) : (
-        <div className="relative border-y border-slate-200 dark:border-slate-800 overflow-hidden aspect-square max-h-[450px] bg-slate-100 dark:bg-slate-950">
-          <img src={post.mediaUrl} alt="Post media" className="w-full h-full object-cover" />
+        <div className="relative w-full max-h-[600px] overflow-hidden bg-slate-50 dark:bg-slate-950 flex justify-center border-y border-slate-100 dark:border-slate-800">
+          <img src={post.mediaUrl} alt="Post media" className="w-full h-full max-h-[600px] object-cover" />
         </div>
       )}
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1 md:gap-2">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
-              hasLiked ? 'text-rose-500' : 'text-slate-600 dark:text-slate-400 hover:text-rose-500'
+            className={`flex items-center justify-center gap-2 text-xs font-bold rounded-xl px-3 py-2 transition-colors ${
+              hasLiked ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            <Heart className={`w-5 h-5 ${hasLiked ? 'fill-current' : ''}`} />
+            <Heart className={`w-5 h-5 ${hasLiked ? 'fill-current text-rose-500' : 'text-slate-500 dark:text-slate-400'}`} />
             {likesCount}
           </button>
           
           <button
             onClick={() => setShowComments(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 cursor-pointer"
+            className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl px-3 py-2 transition-colors"
           >
-            <MessageCircle className="w-5 h-5" />
+            <MessageCircle className="w-5 h-5 text-slate-500 dark:text-slate-400 hover:text-indigo-600" />
             {commentsCount}
           </button>
 
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-emerald-500 cursor-pointer"
+            className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl px-3 py-2 transition-colors hidden sm:flex"
           >
-            <Share2 className="w-5 h-5" />
+            <Share2 className="w-5 h-5 text-slate-500 dark:text-slate-400 hover:text-emerald-600" />
             Share
           </button>
         </div>
 
         <button
           onClick={handleSave}
-          className={`flex items-center text-xs font-semibold cursor-pointer ${
-            hasSaved ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600'
+          className={`flex items-center justify-center p-2 rounded-xl transition-colors ${
+            hasSaved ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
         >
-          <Bookmark className={`w-5 h-5 ${hasSaved ? 'fill-current' : ''}`} />
+          <Bookmark className={`w-5 h-5 ${hasSaved ? 'fill-current text-indigo-600' : 'text-slate-500 dark:text-slate-400'}`} />
         </button>
       </div>
 
@@ -296,10 +342,10 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               ) : (
                 comments.map((comment) => (
                   <div key={comment.id} className="flex gap-3">
-                    <img
+                    <Avatar
                       src={comment.authorAvatar}
-                      alt={comment.authorName}
-                      className="w-8 h-8 rounded-full object-cover"
+                      name={comment.authorName || 'User'}
+                      className="w-8 h-8"
                     />
                     <div>
                       <div className="bg-slate-50 dark:bg-slate-850/50 p-3 rounded-2xl rounded-tl-none">
@@ -343,6 +389,11 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
+        {isOwner && (
+          <MenuItem onClick={handleDeletePost} sx={{ color: 'error.main' }}>
+            Delete Post
+          </MenuItem>
+        )}
         <MenuItem onClick={() => setAnchorEl(null)}>Report Post</MenuItem>
         <MenuItem onClick={() => setAnchorEl(null)}>Hide Post</MenuItem>
       </Menu>

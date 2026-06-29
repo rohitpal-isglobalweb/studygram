@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Provider, useSelector } from 'react-redux';
+import { Provider, useSelector, useDispatch } from 'react-redux';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import { getMuiTheme } from './theme/theme';
 import { AuthLayout } from './layouts/AuthLayout';
 import { MainLayout } from './layouts/MainLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { logout } from './features/authSlice';
 
 // Loading indicator
 import { Loader2 } from 'lucide-react';
@@ -81,10 +82,19 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 const AppContent: React.FC = () => {
   const { themeMode } = useSelector((state: RootState) => state.ui);
   const muiTheme = getMuiTheme(themeMode);
+  const dispatch = useDispatch();
 
   React.useEffect(() => {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
   }, [themeMode]);
+
+  React.useEffect(() => {
+    const handleUnauthorized = () => {
+      dispatch(logout());
+    };
+    window.addEventListener('unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('unauthorized', handleUnauthorized);
+  }, [dispatch]);
 
   return (
     <ThemeProvider theme={muiTheme}>
@@ -101,6 +111,7 @@ const AppContent: React.FC = () => {
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/saved" element={<Saved />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/profile/:username" element={<Profile />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>

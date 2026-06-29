@@ -82,3 +82,28 @@ body {
 .dark-theme .themed-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(129, 140, 248, 0.45);
 }
+
+/* ─── Fade slide-in animation ─── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeSlideIn { animation: fadeSlideIn 0.35s ease both; }
+
+/* ─── Stat widget color-coded accent borders ─── */
+.widget-indigo  { border-left: 4px solid #6366f1; }
+.widget-sky     { border-left: 4px solid #0ea5e9; }
+.widget-purple  { border-left: 4px solid #a855f7; }
+.widget-rose    { border-left: 4px solid #f43f5e; }
+.widget-emerald { border-left: 4px solid #10b981; }
+.widget-amber   { border-left: 4px solid #f59e0b; }
+
+/* ─── Main content scrollbar ─── */
+.admin-content-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99,102,241,0.15) transparent;
+}
+.admin-content-scroll::-webkit-scrollbar { width: 5px; }
+.admin-content-scroll::-webkit-scrollbar-track { background: transparent; }
+.admin-content-scroll::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.15); border-radius: 999px; }
+.admin-content-scroll::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.35); }

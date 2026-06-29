@@ -83,6 +83,18 @@ export class ProfileController {
       next(error);
     }
   }
+
+  async getTopCreators(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const topCreators = await profileService.getTopCreators();
+      res.status(200).json({
+        status: 'success',
+        data: topCreators
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const profileController = new ProfileController();

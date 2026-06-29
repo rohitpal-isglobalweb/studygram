@@ -278,7 +278,7 @@ export const DashboardLayout: React.FC = () => {
         </aside>
 
         {/* Main Content Pane — scrollable, offset by sidebar width */}
-        <div className={`flex flex-col min-w-0 overflow-y-auto h-full smooth-transition ${sidebarCollapsed ? 'ml-20' : 'ml-64'} flex-1`}>
+        <div className={`flex flex-col min-w-0 overflow-y-auto h-full smooth-transition admin-content-scroll ${sidebarCollapsed ? 'ml-20' : 'ml-64'} flex-1`}>
           {/* Content Subheader (shows page title) */}
           <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-3 px-6 flex justify-between items-center">
             <h2 className="text-base font-bold font-heading">

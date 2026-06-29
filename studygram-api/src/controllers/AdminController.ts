@@ -4,6 +4,7 @@ import { User } from '../database/models/User';
 import { Post } from '../database/models/Post';
 import { Category } from '../database/models/Category';
 import { ReportedItem } from '../database/models/ReportedItem';
+import { SocialAccount } from '../database/models/SocialAccount';
 import bcrypt from 'bcryptjs';
 
 export class AdminController {
@@ -209,6 +210,58 @@ export class AdminController {
           },
           usersByRole: rolesBreakdown
         }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getSocialSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user!.id;
+      const record = await SocialAccount.findOne({ where: { userId: adminId } });
+      res.status(200).json({
+        status: 'success',
+        data: {
+          instagramKey: record?.instagramToken || '',
+          facebookKey: record?.facebookToken || '',
+          linkedinKey: record?.linkedinToken || '',
+          youtubeKey: record?.youtubeToken || '',
+          xKey: record?.twitterToken || '',
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateSocialSettings(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user!.id;
+      const { instagramKey, facebookKey, linkedinKey, youtubeKey, xKey } = req.body;
+
+      const [record] = await SocialAccount.findOrCreate({
+        where: { userId: adminId },
+        defaults: {
+          userId: adminId,
+          instagramToken: '',
+          facebookToken: '',
+          linkedinToken: '',
+          youtubeToken: '',
+          twitterToken: '',
+        }
+      });
+
+      if (instagramKey !== undefined) record.instagramToken = instagramKey;
+      if (facebookKey !== undefined) record.facebookToken = facebookKey;
+      if (linkedinKey !== undefined) record.linkedinToken = linkedinKey;
+      if (youtubeKey !== undefined) record.youtubeToken = youtubeKey;
+      if (xKey !== undefined) record.twitterToken = xKey;
+
+      await record.save();
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Social integration settings saved successfully.'
       });
     } catch (error) {
       next(error);

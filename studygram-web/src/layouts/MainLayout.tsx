@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { Avatar } from '../components/Avatar';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../features/store';
 import { toggleTheme } from '../features/uiSlice';
@@ -107,7 +108,7 @@ export const MainLayout: React.FC = () => {
   return (
     <div className={`min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 smooth-transition ${themeMode === 'dark' ? 'dark-theme' : ''}`}>
       {/* Top Navbar for Mobile */}
-      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
+      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-[110]">
         <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent font-heading">
           StudyGram
         </h1>
@@ -157,10 +158,10 @@ export const MainLayout: React.FC = () => {
         {/* User Card at bottom of Desktop Sidebar */}
         <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex items-center gap-3">
-            <img
+            <Avatar
               src={user?.avatarUrl}
-              alt="avatar"
-              className="w-10 h-10 rounded-full object-cover ring-2 ring-indigo-500/20"
+              name={user?.fullName || 'User'}
+              className="w-10 h-10 ring-2 ring-indigo-500/20"
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold truncate">{user?.fullName}</p>
@@ -185,14 +186,14 @@ export const MainLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col md:h-screen md:overflow-y-auto">
-        <div className="max-w-4xl mx-auto w-full p-4 md:p-8 flex-1 pb-20 md:pb-8">
+      <main className="flex-1 min-w-0 flex flex-col md:h-screen md:overflow-y-auto overflow-x-hidden">
+        <div className="max-w-7xl mx-auto w-full p-4 md:p-8 flex-1 pb-20 md:pb-8">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden flex items-center justify-around bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 fixed bottom-0 left-0 right-0 py-2 z-50">
+      <nav className="md:hidden flex items-center justify-around bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 fixed bottom-0 left-0 right-0 py-2 z-[110]">
         {menuItems.filter(item => item.path !== '/search').slice(0, 5).map((item) => {
           const isActive = location.pathname === item.path;
           return (

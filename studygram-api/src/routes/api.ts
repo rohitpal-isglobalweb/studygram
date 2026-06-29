@@ -390,6 +390,16 @@ router.post('/posts/like', authenticateJWT, postController.like);
 router.post('/posts/comment', authenticateJWT, postController.comment);
 
 /**
+ * @swagger
+ * /posts/{postId}:
+ *   delete:
+ *     summary: Delete a post
+ *     security:
+ *       - bearerAuth: []
+ */
+router.delete('/posts/:postId', authenticateJWT, postController.deletePost);
+
+/**
  * @openapi
  * /posts/{postId}/comments:
  *   get:
@@ -444,6 +454,22 @@ router.post('/posts/save', authenticateJWT, postController.save);
  *         description: Saved posts list
  */
 router.get('/posts/saved', authenticateJWT, postController.getSaved);
+
+/**
+ * @swagger
+ * /posts/trending-tags:
+ *   get:
+ *     summary: Get dynamic trending tags
+ */
+router.get('/posts/trending-tags', postController.getTrendingTags);
+
+/**
+ * @swagger
+ * /users/top-creators:
+ *   get:
+ *     summary: Get dynamic top creators
+ */
+router.get('/users/top-creators', profileController.getTopCreators);
 
 /**
  * @openapi
@@ -767,5 +793,45 @@ router.post('/admin/reports/:reportId/resolve', authenticateJWT, authorizeRoles(
  *         description: Analytics summary
  */
 router.get('/admin/analytics', authenticateJWT, authorizeRoles('superadmin'), adminController.getPlatformAnalytics);
+
+/**
+ * @openapi
+ * /admin/social:
+ *   get:
+ *     summary: Get admin social media API integration settings (Super Admin)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Social API settings
+ */
+router.get('/admin/social', authenticateJWT, authorizeRoles('superadmin'), adminController.getSocialSettings);
+
+/**
+ * @openapi
+ * /admin/social:
+ *   put:
+ *     summary: Update admin social media API integration settings (Super Admin)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               instagramKey: { type: string }
+ *               facebookKey: { type: string }
+ *               linkedinKey: { type: string }
+ *               youtubeKey: { type: string }
+ *               xKey: { type: string }
+ *     responses:
+ *       200:
+ *         description: Settings saved
+ */
+router.put('/admin/social', authenticateJWT, authorizeRoles('superadmin'), adminController.updateSocialSettings);
 
 export default router;

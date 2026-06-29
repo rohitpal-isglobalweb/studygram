@@ -12,8 +12,9 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connection successfully established.');
 
-    // Sync models (in production, use migrations instead of alter/force)
-    await sequelize.sync({ alter: true });
+    // Sync models — alter: { drop: false } adds missing columns without
+    // recreating existing indexes/constraints (avoids MySQL's 64-key limit).
+    await sequelize.sync({ alter: { drop: false } });
     console.log('Database models successfully synchronized.');
 
     // Seed database with mock data

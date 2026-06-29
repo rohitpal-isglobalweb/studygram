@@ -4,6 +4,16 @@ interface RequestOptions extends RequestInit {
   body?: any;
 }
 
+/** Clears stored credentials and redirects to the login page. */
+function handleSessionExpired() {
+  localStorage.removeItem('studygram_admin_token');
+  localStorage.removeItem('studygram_admin_user');
+  // Only redirect if not already on the login page to avoid redirect loops
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
+  }
+}
+
 async function request(path: string, options: RequestOptions = {}) {
   const token = localStorage.getItem('studygram_admin_token');
   const headers: HeadersInit = {
@@ -21,7 +31,7 @@ async function request(path: string, options: RequestOptions = {}) {
   });
 
   const text = await response.text();
-  let data;
+  let data: any;
   try {
     data = text ? JSON.parse(text) : {};
   } catch (err) {
@@ -29,7 +39,22 @@ async function request(path: string, options: RequestOptions = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong.');
+    const message: string = data.message || 'Something went wrong.';
+
+    // Auto-logout on 401 Unauthorized or when the backend says the token expired
+    const isTokenExpired =
+      response.status === 401 ||
+      message.toLowerCase().includes('token is invalid or expired') ||
+      message.toLowerCase().includes('invalid or expired') ||
+      message.toLowerCase().includes('jwt expired') ||
+      message.toLowerCase().includes('unauthorized');
+
+    if (isTokenExpired) {
+      handleSessionExpired();
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    throw new Error(message);
   }
 
   return data;
@@ -41,3 +66,4 @@ export const apiClient = {
   put: (path: string, body?: any, options?: RequestOptions) => request(path, { ...options, method: 'PUT', body }),
   delete: (path: string, options?: RequestOptions) => request(path, { ...options, method: 'DELETE' }),
 };
+

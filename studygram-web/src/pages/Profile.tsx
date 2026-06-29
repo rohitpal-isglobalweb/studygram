@@ -3,13 +3,20 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../features/store';
 import { updateProfile } from '../../src/features/authSlice';
 import { PostCard } from '../components/PostCard';
+import { Avatar } from '../components/Avatar';
 import { Edit2, Grid, Bookmark, BookOpen, Camera } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, TextField, Button } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../utils/apiClient';
 
 export const Profile: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { username: paramUsername } = useParams<{ username?: string }>();
   const { user } = useSelector((state: RootState) => state.auth);
+  
+  const targetUsername = paramUsername || user?.username;
+  const isCurrentUser = !paramUsername || paramUsername === user?.username;
   
   const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
   const [editOpen, setEditOpen] = useState(false);
@@ -20,17 +27,23 @@ export const Profile: React.FC = () => {
   const [savedPosts, setSavedPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Followers/Following lists state
+  const [listModalOpen, setListModalOpen] = useState(false);
+  const [listModalType, setListModalType] = useState<'followers' | 'following'>('followers');
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [listsLoading, setListsLoading] = useState(false);
+
   useEffect(() => {
-    if (user?.username) {
+    if (targetUsername) {
       fetchProfileAndPosts();
     }
-  }, [user]);
+  }, [targetUsername]);
 
   const fetchProfileAndPosts = async () => {
     setLoading(true);
     try {
       // Get profile
-      const profRes = await apiClient.get(`/profile/${user?.username}`);
+      const profRes = await apiClient.get(`/profile/${targetUsername}`);
       if (profRes && profRes.data) {
         setProfileData(profRes.data);
       }
@@ -42,7 +55,7 @@ export const Profile: React.FC = () => {
           id: String(p.id),
           authorName: p.user?.name || 'Anonymous User',
           authorUsername: p.user?.username || 'anonymous',
-          authorAvatar: p.user?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          authorAvatar: p.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=6366f1&color=fff`,
           type: p.contentType === 'note' ? 'notes' : p.contentType,
           mediaUrl: p.mediaUrl,
           notesTitle: p.title,
@@ -66,7 +79,7 @@ export const Profile: React.FC = () => {
           id: String(p.id),
           authorName: p.user?.name || 'Anonymous User',
           authorUsername: p.user?.username || 'anonymous',
-          authorAvatar: p.user?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          authorAvatar: p.user?.profileImage,
           type: p.contentType === 'note' ? 'notes' : p.contentType,
           mediaUrl: p.mediaUrl,
           notesTitle: p.title,
@@ -148,6 +161,28 @@ export const Profile: React.FC = () => {
     }
   };
 
+  const openUserList = async (type: 'followers' | 'following') => {
+    if (!profileData?.id) return;
+    setListModalType(type);
+    setListModalOpen(true);
+    setListsLoading(true);
+    setUsersList([]);
+    try {
+      const res = await apiClient.get(`/profile/${profileData.id}/${type}`);
+      if (res.data) {
+        if (type === 'followers') {
+          setUsersList(res.data.map((f: any) => f.follower));
+        } else {
+          setUsersList(res.data.map((f: any) => f.following));
+        }
+      }
+    } catch (err) {
+      console.error(`Error fetching ${type}:`, err);
+    } finally {
+      setListsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Hidden File Inputs */}
@@ -172,15 +207,15 @@ export const Profile: React.FC = () => {
         {/* Profile Info Details */}
         <div className="px-6 pb-6 relative">
           {/* Avatar */}
-          <div className="relative -mt-16 md:-mt-20 mb-4 inline-block">
-            <img
-              src={profileData?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}
-              alt="Avatar"
-              className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-lg"
+          <div className="relative -mt-16 md:-mt-20 mb-4 inline-block group">
+            <Avatar
+              src={profileData?.profileImage}
+              name={profileData?.name || profileData?.fullName || 'User'}
+              className="w-24 h-24 md:w-32 md:h-32 border-4 border-white dark:border-slate-900 shadow-lg group-hover:scale-105 transition-transform duration-300"
             />
             <button 
               onClick={() => document.getElementById('avatar-upload')?.click()}
-              className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 rounded-full text-white ring-2 ring-white dark:ring-slate-900 cursor-pointer hover:scale-105 transition"
+              className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 rounded-full text-white ring-2 ring-white dark:ring-slate-900 cursor-pointer hover:scale-110 hover:bg-indigo-500 shadow-sm transition-all"
             >
               <Camera className="w-3.5 h-3.5" />
             </button>
@@ -192,17 +227,19 @@ export const Profile: React.FC = () => {
               <p className="text-sm text-slate-500">@{profileData?.username}</p>
             </div>
             
-            <button
-              onClick={() => {
-                setFullName(profileData?.name || profileData?.fullName || '');
-                setBio(profileData?.bio || '');
-                setEditOpen(true);
-              }}
-              className="inline-flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 font-semibold py-2 px-4 rounded-xl text-sm transition cursor-pointer"
-            >
-              <Edit2 className="w-4 h-4" />
-              Edit Profile
-            </button>
+            {isCurrentUser && (
+              <button
+                onClick={() => {
+                  setFullName(profileData?.name || profileData?.fullName || '');
+                  setBio(profileData?.bio || '');
+                  setEditOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60 font-semibold py-2 px-4 rounded-xl text-sm transition cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit Profile
+              </button>
+            )}
           </div>
 
           {/* Bio */}
@@ -212,15 +249,15 @@ export const Profile: React.FC = () => {
 
           {/* Stats */}
           <div className="flex items-center gap-6 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4">
-            <div>
+            <div onClick={() => setActiveTab('posts')} className="cursor-pointer hover:opacity-75 transition">
               <span className="block text-lg font-bold font-heading">{posts.length}</span>
               <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Posts</span>
             </div>
-            <div>
+            <div onClick={() => openUserList('followers')} className="cursor-pointer hover:opacity-75 transition">
               <span className="block text-lg font-bold font-heading">{profileData?.followersCount || 0}</span>
               <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Followers</span>
             </div>
-            <div>
+            <div onClick={() => openUserList('following')} className="cursor-pointer hover:opacity-75 transition">
               <span className="block text-lg font-bold font-heading">{profileData?.followingCount || 0}</span>
               <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Following</span>
             </div>
@@ -239,19 +276,21 @@ export const Profile: React.FC = () => {
           }`}
         >
           <Grid className="w-4 h-4" />
-          My Uploads ({posts.length})
+          Uploads ({posts.length})
         </button>
-        <button
-          onClick={() => setActiveTab('saved')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 font-semibold text-sm border-b-2 transition-all cursor-pointer ${
-            activeTab === 'saved'
-              ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Bookmark className="w-4 h-4" />
-          Saved Content ({savedPosts.length})
-        </button>
+        {isCurrentUser && (
+          <button
+            onClick={() => setActiveTab('saved')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 font-semibold text-sm border-b-2 transition-all cursor-pointer ${
+              activeTab === 'saved'
+                ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Bookmark className="w-4 h-4" />
+            Saved ({savedPosts.length})
+          </button>
+        )}
       </div>
 
       {/* Tab Contents */}
@@ -327,6 +366,52 @@ export const Profile: React.FC = () => {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Followers/Following List Dialog */}
+      <Dialog
+        open={listModalOpen}
+        onClose={() => setListModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: '24px',
+              bgcolor: 'background.paper',
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ borderBottom: '1px solid rgba(0,0,0,0.06)', fontFamily: 'Outfit', textTransform: 'capitalize' }}>
+          {listModalType}
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <div className="flex flex-col min-h-[300px] max-h-[500px] overflow-y-auto p-4 space-y-4">
+            {listsLoading ? (
+              <p className="text-center text-sm text-slate-500 py-8 animate-pulse">Loading...</p>
+            ) : usersList.length === 0 ? (
+              <p className="text-center text-sm text-slate-500 py-8">No {listModalType} found.</p>
+            ) : (
+              usersList.map((u) => (
+                <div 
+                  key={u.id} 
+                  onClick={() => {
+                    setListModalOpen(false);
+                    navigate(`/profile/${u.username}`);
+                  }}
+                  className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl transition cursor-pointer"
+                >
+                  <Avatar src={u.profileImage} name={u.name || u.username} className="w-12 h-12" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">{u.name || u.username}</p>
+                    <p className="text-xs text-slate-500 truncate">@{u.username}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

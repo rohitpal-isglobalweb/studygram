@@ -38,9 +38,9 @@ const mockPosts: Post[] = [
     id: 'post_1',
     authorName: 'Aarav Mehta',
     authorUsername: 'aarav_codes',
-    authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+    authorAvatar: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
     type: 'notes',
-    mediaUrl: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=800',
+    mediaUrl: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
     notesTitle: 'React 19 Server Components Architecture Cheat Sheet',
     notesPages: 4,
     caption: 'Here are my condensed handwritten notes summarizing React Server Components (RSC) and server actions flow in React 19. Super helpful for reference!',
@@ -51,7 +51,7 @@ const mockPosts: Post[] = [
       {
         id: 'c1',
         authorName: 'Sarah Jenkins',
-        authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        authorAvatar: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
         content: 'Wow! This is extremely clear and concise. Thanks for sharing.',
         timestamp: '1 hour ago'
       }
@@ -64,9 +64,9 @@ const mockPosts: Post[] = [
     id: 'post_2',
     authorName: 'Nisha Roy',
     authorUsername: 'nisha_upsc',
-    authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    authorAvatar: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
     type: 'image',
-    mediaUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800',
+    mediaUrl: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
     caption: 'My desk setup for UPSC Mains prep today. Focusing on ancient Indian history and geography notes. Consistency is key! 📖✨',
     category: 'UPSC',
     tags: ['upsc', 'studymotivation', 'history', 'desksetup'],
@@ -75,7 +75,7 @@ const mockPosts: Post[] = [
       {
         id: 'c2',
         authorName: 'Rajesh Kumar',
-        authorAvatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150',
+        authorAvatar: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
         content: 'All the best! Your setup looks so focused.',
         timestamp: '4 hours ago'
       }
@@ -88,7 +88,7 @@ const mockPosts: Post[] = [
     id: 'post_3',
     authorName: 'Dr. Evelyn Carter',
     authorUsername: 'evelyn_science',
-    authorAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150',
+    authorAvatar: `https://ui-avatars.com/api/?name=User&background=6366f1&color=fff`,
     type: 'video',
     mediaUrl: 'https://assets.mixkit.co/videos/preview/mixkit-cell-division-under-microscope-41584-large.mp4', // we can use public video or simple mock
     caption: 'Fascinating footage of cell mitosis under a modern polarized microscope. Nature is incredibly structured. 🧬🔬',

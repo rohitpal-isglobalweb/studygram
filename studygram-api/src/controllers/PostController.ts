@@ -123,5 +123,33 @@ export class PostController {
       next(error);
     }
   }
+
+  async deletePost(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { postId } = req.params;
+      const userId = req.user!.id;
+      
+      await postService.deletePost(userId, Number(postId));
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Post deleted successfully.'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTrendingTags(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const tags = await postService.getTrendingTags();
+      res.status(200).json({
+        status: 'success',
+        data: tags
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 export const postController = new PostController();

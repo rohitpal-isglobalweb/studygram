@@ -32,7 +32,7 @@ export const Search: React.FC = () => {
           id: String(p.id),
           authorName: p.user?.name || 'Anonymous User',
           authorUsername: p.user?.username || 'anonymous',
-          authorAvatar: p.user?.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          authorAvatar: p.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=6366f1&color=fff`,
           type: p.contentType === 'note' ? 'notes' : p.contentType,
           mediaUrl: p.mediaUrl,
           notesTitle: p.title,
@@ -53,7 +53,7 @@ export const Search: React.FC = () => {
           id: u.id,
           name: u.name,
           username: u.username,
-          avatar: u.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+          avatar: u.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=6366f1&color=fff`,
           bio: u.bio || ''
         }));
         setUsers(mappedUsers);

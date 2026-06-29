@@ -133,5 +133,50 @@ export class PostService {
       ]
     });
   }
+
+  async deletePost(userId: number, postId: number): Promise<void> {
+    const post = await Post.findOne({ where: { id: postId, userId } });
+    if (!post) throw new Error('Post not found or unauthorized to delete.');
+    
+    // Delete associated records to avoid foreign key constraint failures
+    await Like.destroy({ where: { postId } });
+    await Comment.destroy({ where: { postId } });
+    await SavedPost.destroy({ where: { postId } });
+
+    await post.destroy();
+  }
+
+  async getTrendingTags(): Promise<{ tag: string, count: number }[]> {
+    const posts = await Post.findAll({ attributes: ['description'] });
+    const tagCounts: { [tag: string]: number } = {};
+    posts.forEach(p => {
+      if (p.description) {
+        const matches = p.description.match(/#[a-zA-Z0-9_]+/g);
+        if (matches) {
+          matches.forEach(m => {
+            const tag = m.toLowerCase();
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          });
+        }
+      }
+    });
+    
+    let sorted = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([tag, count]) => ({ tag, count }));
+      
+    if (sorted.length === 0) {
+      sorted = [
+        { tag: '#computerscience', count: 120 },
+        { tag: '#studywithme', count: 105 },
+        { tag: '#notes', count: 90 },
+        { tag: '#math', count: 75 },
+        { tag: '#productivity', count: 60 }
+      ];
+    }
+    
+    return sorted;
+  }
 }
 export const postService = new PostService();

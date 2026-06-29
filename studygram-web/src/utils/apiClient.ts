@@ -35,6 +35,10 @@ async function request(path: string, options: RequestOptions = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      localStorage.removeItem('studygram_token');
+      window.dispatchEvent(new Event('unauthorized'));
+    }
     throw new Error(data.message || 'Something went wrong.');
   }
 
