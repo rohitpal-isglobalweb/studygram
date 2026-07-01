@@ -31,8 +31,8 @@ export const Saved: React.FC = () => {
           category: 'Bookmarked',
           tags: [],
           likesCount: p.likesCount || 0,
-          hasLiked: false,
-          hasSaved: true,
+          hasLiked: p.post.hasLiked || false,
+          hasSaved: p.post.hasSaved || true,
           createdAt: new Date(p.createdAt).toLocaleDateString()
         }));
         setSavedPosts(mapped);

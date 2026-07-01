@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 
 export const AuthLayout: React.FC = () => {
   return (
@@ -7,7 +7,9 @@ export const AuthLayout: React.FC = () => {
       {/* Visual branding side panel */}
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 text-white flex-col justify-between p-12">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight font-heading">StudyGram</h1>
+          <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+            <h1 className="text-4xl font-extrabold tracking-tight font-heading">StudyGram</h1>
+          </Link>
           <p className="mt-2 text-indigo-100 max-w-sm">
             The ultimate user portal for students, educators, and lifelong learners to collaborate, share notes, and grow together.
           </p>
@@ -28,11 +30,22 @@ export const AuthLayout: React.FC = () => {
       <div className="flex-1 flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 md:p-10 shadow-2xl shadow-slate-100 dark:shadow-none">
           <div className="flex flex-col items-center mb-8 md:hidden">
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent font-heading">
-              StudyGram
-            </h1>
+            <Link to="/" className="inline-block hover:opacity-90 transition-opacity">
+              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent font-heading">
+                StudyGram
+              </h1>
+            </Link>
           </div>
           <Outlet />
+        </div>
+        
+        {/* Footer Links */}
+        <div className="absolute bottom-6 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-500 w-full px-6 text-center">
+          <a href="#" className="hover:text-slate-700 dark:hover:text-slate-300 transition">About</a>
+          <a href="#" className="hover:text-slate-700 dark:hover:text-slate-300 transition">Help Center</a>
+          <a href="#" className="hover:text-slate-700 dark:hover:text-slate-300 transition">Privacy Policy</a>
+          <a href="#" className="hover:text-slate-700 dark:hover:text-slate-300 transition">Terms</a>
+          <span className="w-full mt-1">© 2026 StudyGram Inc.</span>
         </div>
       </div>
     </div>

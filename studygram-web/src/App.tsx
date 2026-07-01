@@ -102,12 +102,15 @@ const AppContent: React.FC = () => {
       <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Protected Main Application Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/reels" element={<Reels />} />
+            {/* Main Layout wrapper for both public and protected routes */}
+            <Route element={<MainLayout />}>
+              {/* Public Routes (accessible to guests and users) */}
+              <Route path="/" element={<Home />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/reels" element={<Reels />} />
+
+              {/* Protected Routes (require login) */}
+              <Route element={<ProtectedRoute />}>
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/saved" element={<Saved />} />
                 <Route path="/profile" element={<Profile />} />

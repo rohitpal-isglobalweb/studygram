@@ -5,6 +5,7 @@ import { Like } from '../database/models/Like';
 import { Comment } from '../database/models/Comment';
 import { SavedPost } from '../database/models/SavedPost';
 import { User } from '../database/models/User';
+import { Follower } from '../database/models/Follower';
 import { CloudinaryUploader } from '../utils/cloudinaryUploader';
 
 export class PostService {
@@ -37,33 +38,79 @@ export class PostService {
 
     // Clear feed caches in Redis
     await redisClient.del('feed_posts_public');
+    await redisClient.del('feed_posts_public_registered');
     return post;
   }
 
-  async getFeed(options?: any): Promise<Post[]> {
-    const cacheKey = 'feed_posts_public';
+  async getFeed(options?: any, visibilities: string[] = ['public'], currentUserId?: number): Promise<Post[]> {
+    if (currentUserId) {
+      // Fetch followed users
+      const follows = await Follower.findAll({ where: { followerId: currentUserId } });
+      const followedUserIds = follows.map(f => f.followingId);
+      
+      // Bypass cache for personalized feed
+      const posts = await postRepository.findFeedPosts(options, visibilities, currentUserId, followedUserIds);
+      
+      const postIds = posts.map(p => p.id);
+      if (postIds.length === 0) return [];
+
+      const likes = await Like.findAll({ where: { userId: currentUserId, postId: postIds } });
+      const saves = await SavedPost.findAll({ where: { userId: currentUserId, postId: postIds } });
+      
+      const likedIds = new Set(likes.map(l => l.postId));
+      const savedIds = new Set(saves.map(s => s.postId));
+
+      return posts.map(p => {
+        const postJson = p.toJSON() as any;
+        postJson.hasLiked = likedIds.has(p.id);
+        postJson.hasSaved = savedIds.has(p.id);
+        return postJson;
+      });
+    }
+
+    const cacheKey = `feed_posts_public`;
     const cachedData = await redisClient.get(cacheKey);
 
     if (cachedData) {
       return JSON.parse(cachedData);
     }
 
-    const posts = await postRepository.findFeedPosts(options);
-    // Cache inside Redis for 5 minutes (300 seconds)
+    const posts = await postRepository.findFeedPosts(options, visibilities);
     await redisClient.set(cacheKey, JSON.stringify(posts), { EX: 300 });
     return posts;
   }
 
-  async getTrending(): Promise<Post[]> {
-    const cacheKey = 'trending_posts';
+  async getTrending(visibilities: string[] = ['public'], currentUserId?: number): Promise<Post[]> {
+    if (currentUserId) {
+      const follows = await Follower.findAll({ where: { followerId: currentUserId } });
+      const followedUserIds = follows.map(f => f.followingId);
+      const posts = await postRepository.findTrendingPosts(10, visibilities, currentUserId, followedUserIds);
+      
+      const postIds = posts.map(p => p.id);
+      if (postIds.length === 0) return [];
+
+      const likes = await Like.findAll({ where: { userId: currentUserId, postId: postIds } });
+      const saves = await SavedPost.findAll({ where: { userId: currentUserId, postId: postIds } });
+      
+      const likedIds = new Set(likes.map(l => l.postId));
+      const savedIds = new Set(saves.map(s => s.postId));
+
+      return posts.map(p => {
+        const postJson = p.toJSON() as any;
+        postJson.hasLiked = likedIds.has(p.id);
+        postJson.hasSaved = savedIds.has(p.id);
+        return postJson;
+      });
+    }
+
+    const cacheKey = `trending_posts_public`;
     const cachedData = await redisClient.get(cacheKey);
 
     if (cachedData) {
       return JSON.parse(cachedData);
     }
 
-    const posts = await postRepository.findTrendingPosts(10);
-    // Cache inside Redis for 10 minutes (600 seconds)
+    const posts = await postRepository.findTrendingPosts(10, visibilities);
     await redisClient.set(cacheKey, JSON.stringify(posts), { EX: 600 });
     return posts;
   }
@@ -166,16 +213,6 @@ export class PostService {
       .slice(0, 5)
       .map(([tag, count]) => ({ tag, count }));
       
-    if (sorted.length === 0) {
-      sorted = [
-        { tag: '#computerscience', count: 120 },
-        { tag: '#studywithme', count: 105 },
-        { tag: '#notes', count: 90 },
-        { tag: '#math', count: 75 },
-        { tag: '#productivity', count: 60 }
-      ];
-    }
-    
     return sorted;
   }
 }

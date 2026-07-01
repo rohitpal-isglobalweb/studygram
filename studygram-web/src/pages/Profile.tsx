@@ -55,6 +55,7 @@ export const Profile: React.FC = () => {
           id: String(p.id),
           authorName: p.user?.name || 'Anonymous User',
           authorUsername: p.user?.username || 'anonymous',
+          authorId: p.user?.id,
           authorAvatar: p.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=6366f1&color=fff`,
           type: p.contentType === 'note' ? 'notes' : p.contentType,
           mediaUrl: p.mediaUrl,
@@ -64,8 +65,8 @@ export const Profile: React.FC = () => {
           category: p.category?.name || 'General',
           tags: [],
           likesCount: p.likesCount || 0,
-          hasLiked: false,
-          hasSaved: false,
+          hasLiked: p.hasLiked || false,
+          hasSaved: p.hasSaved || false,
           createdAt: new Date(p.createdAt).toLocaleDateString()
         }));
 
@@ -79,6 +80,7 @@ export const Profile: React.FC = () => {
           id: String(p.id),
           authorName: p.user?.name || 'Anonymous User',
           authorUsername: p.user?.username || 'anonymous',
+          authorId: p.user?.id,
           authorAvatar: p.user?.profileImage,
           type: p.contentType === 'note' ? 'notes' : p.contentType,
           mediaUrl: p.mediaUrl,
@@ -88,8 +90,8 @@ export const Profile: React.FC = () => {
           category: 'Bookmarked',
           tags: [],
           likesCount: p.likesCount || 0,
-          hasLiked: false,
-          hasSaved: true,
+          hasLiked: p.hasLiked || false,
+          hasSaved: p.hasSaved || true,
           createdAt: new Date(p.createdAt).toLocaleDateString()
         }));
         setSavedPosts(mappedSaved);
@@ -180,6 +182,36 @@ export const Profile: React.FC = () => {
       console.error(`Error fetching ${type}:`, err);
     } finally {
       setListsLoading(false);
+    }
+  };
+
+  const handleListUserFollow = async (userId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const res = await apiClient.post('/profile/toggle-follow', { followingId: userId });
+      if (res && res.data) {
+        const followed = res.data.followed;
+        
+        setUsersList(prev => prev.map(u => {
+          if (u.id === userId) {
+            return { ...u, isFollowing: followed };
+          }
+          return u;
+        }));
+
+        if (isCurrentUser) {
+          setProfileData((prev: any) => ({
+            ...prev,
+            followingCount: followed ? (prev.followingCount || 0) + 1 : Math.max(0, (prev.followingCount || 0) - 1)
+          }));
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling follow:', err);
     }
   };
 
@@ -408,6 +440,18 @@ export const Profile: React.FC = () => {
                     <p className="font-bold text-sm truncate">{u.name || u.username}</p>
                     <p className="text-xs text-slate-500 truncate">@{u.username}</p>
                   </div>
+                  {user && user.id !== u.id && (
+                    <button
+                      onClick={(e) => handleListUserFollow(u.id, e)}
+                      className={`text-xs font-bold px-4 py-1.5 rounded-full transition-colors ${
+                        u.isFollowing 
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                    >
+                      {u.isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                  )}
                 </div>
               ))
             )}

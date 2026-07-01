@@ -7,7 +7,7 @@ import { categoryController } from '../controllers/CategoryController';
 import { searchController } from '../controllers/SearchController';
 import { notificationController } from '../controllers/NotificationController';
 import { reminderController } from '../controllers/ReminderController';
-import { authenticateJWT, authorizeRoles } from '../middlewares/authMiddleware';
+import { authenticateJWT, authorizeRoles, optionalAuthenticateJWT } from '../middlewares/authMiddleware';
 import { apiRateLimiter } from '../middlewares/rateLimiter';
 import { upload } from '../middlewares/uploadMiddleware';
 
@@ -326,7 +326,7 @@ router.post('/posts', authenticateJWT, upload.single('media'), postController.cr
  *       200:
  *         description: Posts list
  */
-router.get('/posts/feed', authenticateJWT, postController.getFeed);
+router.get('/posts/feed', optionalAuthenticateJWT, postController.getFeed);
 
 /**
  * @openapi
@@ -340,7 +340,7 @@ router.get('/posts/feed', authenticateJWT, postController.getFeed);
  *       200:
  *         description: Trending posts list
  */
-router.get('/posts/trending', authenticateJWT, postController.getTrending);
+router.get('/posts/trending', optionalAuthenticateJWT, postController.getTrending);
 
 /**
  * @openapi
@@ -469,7 +469,7 @@ router.get('/posts/trending-tags', postController.getTrendingTags);
  *   get:
  *     summary: Get dynamic top creators
  */
-router.get('/users/top-creators', profileController.getTopCreators);
+router.get('/users/top-creators', optionalAuthenticateJWT, profileController.getTopCreators);
 
 /**
  * @openapi
@@ -483,7 +483,7 @@ router.get('/users/top-creators', profileController.getTopCreators);
  *       200:
  *         description: Category list
  */
-router.get('/categories', authenticateJWT, categoryController.getCategories);
+router.get('/categories', optionalAuthenticateJWT, categoryController.getCategories);
 
 /**
  * @openapi
@@ -502,7 +502,7 @@ router.get('/categories', authenticateJWT, categoryController.getCategories);
  *       200:
  *         description: Matching records
  */
-router.get('/search', authenticateJWT, searchController.search);
+router.get('/search', optionalAuthenticateJWT, searchController.search);
 
 /**
  * @openapi

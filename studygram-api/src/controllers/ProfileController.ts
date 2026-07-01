@@ -61,7 +61,7 @@ export class ProfileController {
   async getFollowers(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;
-      const followers = await profileService.getFollowers(Number(userId));
+      const followers = await profileService.getFollowers(Number(userId), req.user?.id);
       res.status(200).json({
         status: 'success',
         data: followers
@@ -74,7 +74,7 @@ export class ProfileController {
   async getFollowing(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { userId } = req.params;
-      const following = await profileService.getFollowing(Number(userId));
+      const following = await profileService.getFollowing(Number(userId), req.user?.id);
       res.status(200).json({
         status: 'success',
         data: following
@@ -86,7 +86,7 @@ export class ProfileController {
 
   async getTopCreators(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const topCreators = await profileService.getTopCreators();
+      const topCreators = await profileService.getTopCreators(req.user?.id);
       res.status(200).json({
         status: 'success',
         data: topCreators

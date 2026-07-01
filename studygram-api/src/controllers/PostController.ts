@@ -22,7 +22,8 @@ export class PostController {
 
   async getFeed(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const feed = await postService.getFeed();
+      const visibilities = ['public']; // The 'followers' visibility logic is now handled based on currentUserId
+      const feed = await postService.getFeed({}, visibilities, req.user?.id);
       res.status(200).json({
         status: 'success',
         data: feed
@@ -34,7 +35,8 @@ export class PostController {
 
   async getTrending(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const trending = await postService.getTrending();
+      const visibilities = ['public']; 
+      const trending = await postService.getTrending(visibilities, req.user?.id);
       res.status(200).json({
         status: 'success',
         data: trending

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PostCard } from '../components/PostCard';
 import { PostSkeleton } from '../components/PostSkeleton';
-import { Sparkles, Brain, Award, TrendingUp, Users, ChevronRight } from 'lucide-react';
+import { Sparkles, Brain, Award, TrendingUp } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../features/store';
 import { apiClient } from '../utils/apiClient';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
   const [posts, setPosts] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>(['All']);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -32,6 +35,7 @@ export const Home: React.FC = () => {
           id: String(p.id),
           authorName: p.user?.name || 'Anonymous User',
           authorUsername: p.user?.username || 'anonymous',
+          authorId: p.user?.id,
           authorAvatar: p.user?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent('User')}&background=6366f1&color=fff`,
           type: p.contentType === 'note' ? 'notes' : p.contentType,
           mediaUrl: p.mediaUrl,
@@ -42,8 +46,8 @@ export const Home: React.FC = () => {
           tags: [],
           likesCount: p.likesCount || 0,
           commentsCount: p.commentsCount || 0,
-          hasLiked: false,
-          hasSaved: false,
+          hasLiked: p.hasLiked || false,
+          hasSaved: p.hasSaved || false,
           createdAt: new Date(p.createdAt).toLocaleDateString()
         }));
         setPosts(mapped);
@@ -78,6 +82,58 @@ export const Home: React.FC = () => {
     ? posts 
     : posts.filter(p => p.category === selectedCategory);
 
+  const handleToggleFollow = async (creatorId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const res = await apiClient.post('/profile/follow', { followingId: creatorId });
+      if (res && res.data) {
+        const followed = res.data.followed;
+        setTopCreators(prev => prev.map(c => {
+          if (c.id === creatorId) {
+            return { ...c, isFollowing: followed };
+          }
+          return c;
+        }));
+      }
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+    }
+  };
+
+  const renderSuggestedCreators = () => {
+    if (topCreators.length === 0) return null;
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-hidden my-6">
+        <h3 className="font-extrabold font-heading text-lg mb-4 text-slate-800 dark:text-slate-100">Suggested for you</h3>
+        <div className="flex gap-4 overflow-x-auto custom-scrollbar pb-2 snap-x">
+          {topCreators.map(creator => (
+            <div key={creator.id || creator.handle} className="snap-start min-w-[160px] max-w-[160px] bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-3">
+              <Avatar src={creator.profileImage} name={creator.name} className="w-20 h-20 shadow-sm" />
+              <div className="w-full">
+                <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate cursor-pointer hover:text-indigo-600 transition" onClick={() => navigate(`/profile/${creator.handle.substring(1)}`)}>{creator.name}</p>
+                <p className="text-xs text-slate-500 truncate">{creator.handle}</p>
+              </div>
+              <button
+                onClick={(e) => handleToggleFollow(creator.id, e)}
+                className={`w-full text-xs font-bold py-2 rounded-xl transition-colors ${
+                  creator.isFollowing 
+                    ? 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30'
+                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
+              >
+                {creator.isFollowing ? 'Following' : 'Follow'}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
       {/* Main Left Column */}
@@ -104,7 +160,7 @@ export const Home: React.FC = () => {
         </div>
 
       {/* Categories Filter Carousel */}
-      <div className="overflow-x-auto no-scrollbar py-2">
+      <div className="overflow-x-auto custom-scrollbar pb-3">
         <div className="flex gap-2.5">
           {categories.map(category => {
             const isSelected = selectedCategory === category;
@@ -137,8 +193,12 @@ export const Home: React.FC = () => {
             No posts found in this category.
           </div>
         ) : (
-          filteredPosts.map(post => (
-            <PostCard key={post.id} post={post} />
+          filteredPosts.map((post, index) => (
+            <React.Fragment key={post.id}>
+              <PostCard post={post} />
+              {/* Insert suggested creators after the 2nd post (index 1), or after the last post if there are less than 2 */}
+              {(index === 1 || (filteredPosts.length === 1 && index === 0)) && renderSuggestedCreators()}
+            </React.Fragment>
           ))
         )}
 
@@ -163,64 +223,26 @@ export const Home: React.FC = () => {
       {/* Right Sidebar (Responsive: bottom on mobile, right on desktop) */}
       <div className="flex flex-col space-y-8 lg:sticky lg:top-24 h-max order-last">
         {/* Trending Tags Widget */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 text-slate-800 dark:text-slate-100">
-            <TrendingUp className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-extrabold font-heading text-lg">Trending Tags</h3>
-          </div>
-          <div className="space-y-4">
-            {trendingTags.map((t) => (
-              <div key={t.tag} className="flex flex-col group cursor-pointer">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 transition-colors">
-                  {t.tag}
-                </span>
-                <span className="text-xs text-slate-400 font-medium">{t.count} posts</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Suggested Creators Widget */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
-              <Users className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-extrabold font-heading text-lg">Top Creators</h3>
+        {trendingTags.length > 0 && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-6 text-slate-800 dark:text-slate-100">
+              <TrendingUp className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-extrabold font-heading text-lg">Trending Tags</h3>
             </div>
-            <button 
-              onClick={() => navigate('/search')}
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
-            >
-              View All
-            </button>
-          </div>
-          
-          <div className="space-y-5">
-            {topCreators.map(user => (
-              <div key={user.handle} onClick={() => navigate(`/profile/${user.handle.substring(1)}`)} className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <Avatar src={user.profileImage} name={user.name} className="w-10 h-10 ring-2 ring-transparent group-hover:ring-indigo-500/20 transition-all" />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 transition-colors">{user.name}</span>
-                    <span className="text-xs text-slate-500 font-medium">{user.handle}</span>
-                  </div>
+            <div className="space-y-4">
+              {trendingTags.map((t) => (
+                <div key={t.tag} className="flex flex-col group cursor-pointer">
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 transition-colors">
+                    {t.tag}
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">{t.count} posts</span>
                 </div>
-                <button className="p-1.5 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30 group-hover:text-indigo-600 transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-        
-        {/* Footer Links */}
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-slate-400 px-2">
-          <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition">About</a>
-          <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition">Help Center</a>
-          <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition">Privacy Policy</a>
-          <a href="#" className="hover:text-slate-600 dark:hover:text-slate-300 transition">Terms</a>
-          <span className="w-full mt-2">© 2026 StudyGram Inc.</span>
-        </div>
+        )}
+
+        {/* Footer Links (moved to auth page) */}
       </div>
     </div>
   );

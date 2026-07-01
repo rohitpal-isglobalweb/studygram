@@ -98,28 +98,51 @@ export const MainLayout: React.FC = () => {
   const menuItems = [
     { name: 'Home Feed', icon: <Home className="w-5 h-5" />, path: '/' },
     { name: 'Search', icon: <Search className="w-5 h-5" />, path: '/search' },
-    { name: 'Study Reels', icon: <Film className="w-5 h-5" />, path: '/reels' },
-    { name: 'Upload Center', icon: <PlusSquare className="w-5 h-5" />, path: '/upload' },
-    { name: 'Saved Content', icon: <Bookmark className="w-5 h-5" />, path: '/saved' },
-    { name: 'Profile', icon: <User className="w-5 h-5" />, path: `/profile` },
-    { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/settings' },
+    { name: 'Study Reels', icon: <Film className="w-5 h-5" />, path: '/reels' }
   ];
+
+  if (user) {
+    menuItems.push(
+      { name: 'Upload Center', icon: <PlusSquare className="w-5 h-5" />, path: '/upload' },
+      { name: 'Saved Content', icon: <Bookmark className="w-5 h-5" />, path: '/saved' },
+      { name: 'Profile', icon: <User className="w-5 h-5" />, path: `/profile` },
+      { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/settings' }
+    );
+  }
+
+  const getMobileHeaderTitle = () => {
+    if (location.pathname === '/') return 'StudyGram';
+    if (location.pathname === '/search') return 'Explore';
+    if (location.pathname === '/reels') return 'Study Reels';
+    if (location.pathname === '/upload') return 'New Post';
+    if (location.pathname === '/saved') return 'Saved Content';
+    if (location.pathname.startsWith('/profile')) return user?.username || 'Profile';
+    if (location.pathname === '/settings') return 'Settings';
+    return 'StudyGram';
+  };
 
   return (
     <div className={`min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 smooth-transition ${themeMode === 'dark' ? 'dark-theme' : ''}`}>
       {/* Top Navbar for Mobile */}
       <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-[110]">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent font-heading">
-          StudyGram
+        <h1 className={`text-xl font-bold font-heading ${location.pathname === '/' ? 'bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent' : 'text-slate-800 dark:text-slate-100'}`}>
+          {getMobileHeaderTitle()}
         </h1>
-        <div className="flex items-center gap-2">
-          <IconButton onClick={() => navigate('/search')}>
-            <Search className="w-5 h-5" />
-          </IconButton>
-          <IconButton onClick={() => dispatch(toggleTheme())}>
+        <div className="flex items-center gap-1">
+          {location.pathname.startsWith('/profile') && user && (
+            <>
+              <IconButton size="small" onClick={() => navigate('/settings')}>
+                <Settings className="w-5 h-5" />
+              </IconButton>
+              <IconButton size="small" onClick={handleLogout} color="error">
+                <LogOut className="w-5 h-5" />
+              </IconButton>
+            </>
+          )}
+          <IconButton size="small" onClick={() => dispatch(toggleTheme())}>
             {themeMode === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </IconButton>
-          <IconButton onClick={handleNotifOpen}>
+          <IconButton size="small" onClick={handleNotifOpen}>
             <Badge badgeContent={unreadCount} color="error">
               <Bell className="w-5 h-5" />
             </Badge>
@@ -157,31 +180,49 @@ export const MainLayout: React.FC = () => {
 
         {/* User Card at bottom of Desktop Sidebar */}
         <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="flex items-center gap-3">
-            <Avatar
-              src={user?.avatarUrl}
-              name={user?.fullName || 'User'}
-              className="w-10 h-10 ring-2 ring-indigo-500/20"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{user?.fullName}</p>
-              <p className="text-xs text-slate-500 truncate">@{user?.username}</p>
+          {user ? (
+            <>
+              <div className="flex items-center gap-3">
+                <Avatar
+                  src={user.avatarUrl}
+                  name={user.fullName || 'User'}
+                  className="w-10 h-10 ring-2 ring-indigo-500/20"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{user.fullName}</p>
+                  <p className="text-xs text-slate-500 truncate">@{user.username}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <IconButton size="small" onClick={() => dispatch(toggleTheme())}>
+                  {themeMode === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </IconButton>
+                <IconButton size="small" onClick={handleNotifOpen}>
+                  <Badge badgeContent={unreadCount} color="error">
+                    <Bell className="w-4 h-4" />
+                  </Badge>
+                </IconButton>
+                <IconButton size="small" onClick={handleLogout} color="error">
+                  <LogOut className="w-4 h-4" />
+                </IconButton>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors"
+              >
+                Log In
+              </button>
+              <div className="flex justify-center">
+                <IconButton size="small" onClick={() => dispatch(toggleTheme())}>
+                  {themeMode === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                </IconButton>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <IconButton size="small" onClick={() => dispatch(toggleTheme())}>
-              {themeMode === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </IconButton>
-            <IconButton size="small" onClick={handleNotifOpen}>
-              <Badge badgeContent={unreadCount} color="error">
-                <Bell className="w-4 h-4" />
-              </Badge>
-            </IconButton>
-            <IconButton size="small" onClick={handleLogout} color="error">
-              <LogOut className="w-4 h-4" />
-            </IconButton>
-          </div>
+          )}
         </div>
       </aside>
 

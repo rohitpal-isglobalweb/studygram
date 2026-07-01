@@ -1,32 +1,28 @@
-# React + TypeScript + Vite
+# Studygram Web Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Studygram is an interactive, modern Progressive Web Application (PWA) designed to foster a community of learners. This React application uses Vite, TypeScript, Tailwind CSS, and Material UI.
 
-Currently, two official plugins are available:
+## Implemented Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+### 1. Guest Mode
+- **Unauthenticated Access**: Guests can explore the `Home Feed`, `Search`, and `Study Reels` without an account.
+- **Login Prompts**: Interacting with core functionality (Liking, Commenting, Saving, or Following) will seamlessly redirect guests to the login page.
+- **Smart UI Restrictions**: Elements like the "3-dots" menu (for reporting/hiding posts) are automatically hidden for guest users.
 
-## React Compiler
+### 2. The Follow System (Instagram-Style)
+- **In-Feed Follows**: Users can follow/unfollow creators directly from the feed using the follow button in the Post header.
+- **Optimistic UI**: The state toggles instantly, utilizing `localStorage` to ensure cross-page session continuity.
+- **Self-Follow Protection**: The application prevents you from accidentally following yourself by hiding the follow button on your own posts.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 3. Post & Visibility Controls
+- **Flexible Visibility**: When uploading a new post, creators can pick between:
+  - `Public (Everyone)`: Visible to all, including guests.
+  - `Logged-in Users Only`: Restricted visibility for authenticated members.
+- **Rich Media**: Support for Images, Videos, and Study Notes.
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Tech Stack
+- **Framework**: React 18
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS & Vanilla CSS + Material UI
+- **State Management**: Redux Toolkit & React Query
+- **Routing**: React Router DOM

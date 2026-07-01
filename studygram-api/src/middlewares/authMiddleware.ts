@@ -28,6 +28,21 @@ export const authenticateJWT = (req: AuthRequest, res: Response, next: NextFunct
   }
 };
 
+export const optionalAuthenticateJWT = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.JWT_SECRET || 'jwt_secret_token_12345', (err: any, user: any) => {
+      if (!err && user) {
+        req.user = user;
+      }
+      next();
+    });
+  } else {
+    next();
+  }
+};
+
 export const authorizeRoles = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {

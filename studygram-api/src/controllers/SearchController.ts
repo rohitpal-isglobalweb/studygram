@@ -3,6 +3,7 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 import { User } from '../database/models/User';
 import { Post } from '../database/models/Post';
 import { Category } from '../database/models/Category';
+import { Follower } from '../database/models/Follower';
 import { Op } from 'sequelize';
 
 export class SearchController {
@@ -26,6 +27,24 @@ export class SearchController {
         limit: 10
       });
 
+      const visibilities = ['public'];
+      let visibilityCondition: any = { visibility: { [Op.in]: visibilities } };
+      
+      if (req.user) {
+        const currentUserId = req.user.id;
+        const follows = await Follower.findAll({ where: { followerId: currentUserId } });
+        const followedUserIds = follows.map(f => f.followingId);
+        
+        visibilityCondition = {
+          [Op.or]: [
+            { visibility: { [Op.in]: visibilities } },
+            { visibility: 'followers', userId: { [Op.in]: followedUserIds } },
+            { visibility: 'followers', userId: currentUserId },
+            { visibility: 'private', userId: currentUserId }
+          ]
+        };
+      }
+
       // Search posts
       const posts = await Post.findAll({
         where: {
@@ -34,7 +53,7 @@ export class SearchController {
             { description: { [Op.like]: `%${term}%` } }
           ],
           status: 'active',
-          visibility: 'public'
+          ...visibilityCondition
         },
         include: [
           { model: User, attributes: ['id', 'name', 'username', 'profileImage'] }
@@ -51,11 +70,30 @@ export class SearchController {
         limit: 10
       });
 
+      let mappedPosts = posts;
+      if (req.user) {
+        const { Like } = require('../database/models/Like');
+        const { SavedPost } = require('../database/models/SavedPost');
+        const postIds = posts.map((p: any) => p.id);
+        if (postIds.length > 0) {
+          const likes = await Like.findAll({ where: { userId: req.user.id, postId: postIds } });
+          const saves = await SavedPost.findAll({ where: { userId: req.user.id, postId: postIds } });
+          const likedIds = new Set(likes.map((l: any) => l.postId));
+          const savedIds = new Set(saves.map((s: any) => s.postId));
+          mappedPosts = posts.map((p: any) => {
+            const postJson = p.toJSON() as any;
+            postJson.hasLiked = likedIds.has(p.id);
+            postJson.hasSaved = savedIds.has(p.id);
+            return postJson;
+          }) as any;
+        }
+      }
+
       res.status(200).json({
         status: 'success',
         data: {
           users,
-          posts,
+          posts: mappedPosts,
           categories
         }
       });

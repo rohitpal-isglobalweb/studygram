@@ -56,7 +56,7 @@ export class Post extends Model {
   thumbnailUrl!: string;
 
   @Column({
-    type: DataType.ENUM('public', 'followers', 'private'),
+    type: DataType.ENUM('public', 'registered', 'followers', 'private'),
     defaultValue: 'public',
     allowNull: false
   })

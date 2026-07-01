@@ -83,28 +83,56 @@ export class ProfileService {
     }
   }
 
-  async getFollowers(userId: number): Promise<any[]> {
-    return followerRepository.findFollowers(userId);
+  async getFollowers(userId: number, currentUserId?: number): Promise<any[]> {
+    const followers = await followerRepository.findFollowers(userId);
+    let followingIds = new Set<number>();
+    if (currentUserId) {
+      const currentUserFollowing = await Follower.findAll({ where: { followerId: currentUserId } });
+      followingIds = new Set(currentUserFollowing.map(f => f.followingId));
+    }
+
+    return followers.map(f => {
+      const data = f.toJSON();
+      data.follower.isFollowing = followingIds.has(data.follower.id);
+      return data;
+    });
   }
 
-  async getFollowing(userId: number): Promise<any[]> {
-    return followerRepository.findFollowing(userId);
+  async getFollowing(userId: number, currentUserId?: number): Promise<any[]> {
+    const following = await followerRepository.findFollowing(userId);
+    let followingIds = new Set<number>();
+    if (currentUserId) {
+      const currentUserFollowing = await Follower.findAll({ where: { followerId: currentUserId } });
+      followingIds = new Set(currentUserFollowing.map(f => f.followingId));
+    }
+
+    return following.map(f => {
+      const data = f.toJSON();
+      data.following.isFollowing = followingIds.has(data.following.id);
+      return data;
+    });
   }
 
-  async getTopCreators(): Promise<any[]> {
+  async getTopCreators(currentUserId?: number): Promise<any[]> {
     const users = await User.findAll({
       where: { status: 'active', role: 'user' },
       attributes: ['id', 'name', 'username', 'profileImage'],
-      limit: 3
+      limit: 10
     });
     
     // Fallback if no users
     if (users.length === 0) {
       return [
-        { name: 'Alice Walker', handle: '@alicestudies', posts: 142 },
-        { name: 'Dr. Jane Smith', handle: '@janesmith', posts: 89 },
-        { name: 'Code Ninja', handle: '@codeninja', posts: 320 }
+        { id: 9991, name: 'Alice Walker', handle: '@alicestudies', posts: 142, isFollowing: false },
+        { id: 9992, name: 'Dr. Jane Smith', handle: '@janesmith', posts: 89, isFollowing: false },
+        { id: 9993, name: 'Code Ninja', handle: '@codeninja', posts: 320, isFollowing: false }
       ];
+    }
+
+    let followingIds = new Set<number>();
+    if (currentUserId) {
+      const currentUserFollowing = await Follower.findAll({ where: { followerId: currentUserId } });
+      followingIds = new Set(currentUserFollowing.map(f => f.followingId));
     }
     
     return users.map(u => ({
@@ -112,8 +140,9 @@ export class ProfileService {
       name: u.name,
       handle: `@${u.username}`,
       profileImage: u.profileImage,
-      posts: Math.floor(Math.random() * 200) + 10 // Dynamic mockup count
-    }));
+      posts: Math.floor(Math.random() * 200) + 10, // Dynamic mockup count
+      isFollowing: followingIds.has(u.id)
+    })).filter(u => u.id !== currentUserId); // don't suggest the current user
   }
 }
 

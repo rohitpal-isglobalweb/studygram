@@ -24,6 +24,7 @@ export const Upload: React.FC = () => {
   const [notesPages, setNotesPages] = useState(1);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<'public' | 'followers'>('public');
   
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState('');
@@ -76,7 +77,7 @@ export const Upload: React.FC = () => {
       formData.append('title', postType === 'notes' ? notesTitle || 'Lecture Notes' : caption.substring(0, 40));
       formData.append('description', caption);
       formData.append('categoryId', String(selectedCategoryId));
-      formData.append('visibility', 'public');
+      formData.append('visibility', visibility);
 
       if (mediaFile) {
         formData.append('media', mediaFile);
@@ -96,6 +97,7 @@ export const Upload: React.FC = () => {
       setMediaPreview(null);
       setScheduleEnabled(false);
       setScheduleDateTime('');
+      setVisibility('public');
     } catch (err: any) {
       setPublishing(false);
       setError(err.message || 'Failed to upload post.');
@@ -314,6 +316,21 @@ export const Upload: React.FC = () => {
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
+                </select>
+              </div>
+
+              {/* Visibility */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                  Post Visibility
+                </label>
+                <select
+                  value={visibility}
+                  onChange={(e) => setVisibility(e.target.value as 'public' | 'followers')}
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="public">Public (Everyone)</option>
+                  <option value="followers">My Followers Only</option>
                 </select>
               </div>
 

@@ -41,8 +41,8 @@ export const Search: React.FC = () => {
           category: p.category?.name || 'General',
           tags: [],
           likesCount: p.likesCount || 0,
-          hasLiked: false,
-          hasSaved: false,
+          hasLiked: p.hasLiked || false,
+          hasSaved: p.hasSaved || false,
           createdAt: new Date(p.createdAt).toLocaleDateString()
         }));
 
