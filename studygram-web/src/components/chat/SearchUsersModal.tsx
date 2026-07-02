@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { X, Loader2 } from 'lucide-react';
 import { apiClient } from '../../utils/apiClient';
+import { Avatar } from '../Avatar';
 import { setActiveConversation, setConversations } from '../../features/chatSlice';
 
 export const SearchUsersModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -72,7 +73,7 @@ export const SearchUsersModal: React.FC<{ onClose: () => void }> = ({ onClose })
             placeholder="Search users..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent border-none text-sm focus:ring-0 text-slate-900 dark:text-white placeholder-slate-400"
+            className="flex-1 bg-transparent border-none text-sm focus:outline-none focus:ring-0 text-slate-900 dark:text-white placeholder-slate-400"
             autoFocus
           />
         </div>
@@ -91,10 +92,10 @@ export const SearchUsersModal: React.FC<{ onClose: () => void }> = ({ onClose })
                   disabled={creating}
                   className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-left transition-colors"
                 >
-                  <img 
-                    src={user.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=6366f1&color=fff`}
-                    alt={user.name}
-                    className="w-12 h-12 rounded-full object-cover"
+                  <Avatar
+                    src={user.profileImage}
+                    name={user.name}
+                    className="w-10 h-10"
                   />
                   <div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">{user.name}</p>

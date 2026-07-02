@@ -5,12 +5,18 @@ import { User } from '../database/models/User';
 import { CloudinaryUploader } from '../utils/cloudinaryUploader';
 
 export class ProfileService {
-  async getProfile(username: string): Promise<any> {
+  async getProfile(username: string, currentUserId?: number): Promise<any> {
     const user = await userRepository.findByUsername(username);
     if (!user) throw new Error('User not found.');
 
     const followersCount = await Follower.count({ where: { followingId: user.id } });
     const followingCount = await Follower.count({ where: { followerId: user.id } });
+    
+    let isFollowing = false;
+    if (currentUserId) {
+      const followRecord = await Follower.findOne({ where: { followerId: currentUserId, followingId: user.id } });
+      isFollowing = !!followRecord;
+    }
 
     return {
       id: user.id,
@@ -29,6 +35,7 @@ export class ProfileService {
       lastLogin: user.lastLogin,
       followersCount,
       followingCount,
+      isFollowing,
       createdAt: user.createdAt
     };
   }

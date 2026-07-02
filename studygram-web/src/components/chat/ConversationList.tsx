@@ -1,21 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { Avatar } from '../Avatar';
 import type { RootState } from '../../features/store';
-import { setActiveConversation } from '../../features/chatSlice';
-import { Search, Edit } from 'lucide-react';
+import { setActiveConversation, setConversations } from '../../features/chatSlice';
+import { Search, Edit, Loader2 } from 'lucide-react';
+import { apiClient } from '../../utils/apiClient';
 import { SearchUsersModal } from './SearchUsersModal';
 
 export const ConversationList: React.FC<{ loading: boolean }> = ({ loading }) => {
   const dispatch = useDispatch();
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   const conversations = useSelector((state: RootState) => state.chat.conversations);
   const activeConversationId = useSelector((state: RootState) => state.chat.activeConversationId);
   const onlineUsers = useSelector((state: RootState) => state.chat.onlineUsers);
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
+  const [searchedUsers, setSearchedUsers] = useState<any[]>([]);
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const [creatingChatId, setCreatingChatId] = useState<number | null>(null);
 
   const filteredConversations = conversations.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchedUsers([]);
+      return;
+    }
+    const searchUsers = async () => {
+      setIsSearchingUsers(true);
+      try {
+        const res = await apiClient.get(`/chat/search-users?query=${encodeURIComponent(searchQuery)}`);
+        if (res && res.data) setSearchedUsers(res.data);
+      } catch (err) {
+        console.error('Error searching users:', err);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    };
+    const timer = setTimeout(searchUsers, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const startChat = async (userId: number) => {
+    setCreatingChatId(userId);
+    try {
+      const res = await apiClient.post('/chat/conversation', { otherUserId: userId });
+      if (res && res.data) {
+        const convRes = await apiClient.get('/chat/conversations');
+        if (convRes && convRes.data) {
+          dispatch(setConversations(convRes.data));
+        }
+        dispatch(setActiveConversation(res.data.id));
+        setSearchQuery('');
+      }
+    } catch (err) {
+      console.error('Error starting chat:', err);
+    } finally {
+      setCreatingChatId(null);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900">
@@ -66,8 +111,8 @@ export const ConversationList: React.FC<{ loading: boolean }> = ({ loading }) =>
           <div className="flex flex-col">
             {filteredConversations.map(conv => {
               const isActive = activeConversationId === conv.id;
-              // Check if any participant is online
-              const isOnline = conv.participants.some(p => onlineUsers[p.id]?.online);
+              // Check if any OTHER participant is online
+              const isOnline = conv.participants.some(p => String(p.id) !== String(currentUser?.id) && onlineUsers[p.id]?.online);
 
               return (
                 <button
@@ -79,10 +124,10 @@ export const ConversationList: React.FC<{ loading: boolean }> = ({ loading }) =>
                     }`}
                 >
                   <div className="relative flex-shrink-0">
-                    <img
-                      src={conv.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conv.name)}&background=6366f1&color=fff`}
-                      alt={conv.name}
-                      className="w-12 h-12 rounded-full object-cover"
+                    <Avatar
+                      src={conv.avatar}
+                      name={conv.name}
+                      className="w-12 h-12"
                     />
                     {isOnline && (
                       <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full" />
@@ -100,13 +145,50 @@ export const ConversationList: React.FC<{ loading: boolean }> = ({ loading }) =>
                         </span>
                       )}
                     </div>
-                    <p className={`text-sm truncate ${isActive ? 'text-indigo-600 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-400'}`}>
-                      {conv.lastMessage?.text || 'New conversation'}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className={`text-sm truncate pr-2 ${isActive ? 'text-indigo-600 dark:text-indigo-300' : (conv.unreadCount ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-slate-500 dark:text-slate-400')}`}>
+                        {conv.lastMessage?.text || 'New conversation'}
+                      </p>
+                      {!!conv.unreadCount && (
+                        <span className="flex-shrink-0 bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                          {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </button>
               );
             })}
+
+            {/* Global User Search Results */}
+            {searchQuery.trim().length >= 2 && (
+              <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-4 mb-2">Users</h3>
+                {isSearchingUsers ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                  </div>
+                ) : searchedUsers.length === 0 ? (
+                  <div className="text-sm text-slate-500 px-4 py-2 text-center">No users found.</div>
+                ) : (
+                  searchedUsers.map(user => (
+                    <button
+                      key={user.id}
+                      onClick={() => startChat(user.id)}
+                      disabled={creatingChatId === user.id}
+                      className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-left"
+                    >
+                      <Avatar src={user.profileImage} name={user.username} className="w-10 h-10" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 dark:text-white truncate">{user.username}</p>
+                        <p className="text-sm text-slate-500 truncate">{user.fullName || `@${user.username}`}</p>
+                      </div>
+                      {creatingChatId === user.id && <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

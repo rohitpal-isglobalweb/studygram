@@ -9,7 +9,8 @@ import {
   Calendar,
   Tag,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Share2
 } from 'lucide-react';
 
 export const Upload: React.FC = () => {
@@ -33,10 +34,25 @@ export const Upload: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [connectedAccounts, setConnectedAccounts] = useState<any>(null);
+  const [publishTo, setPublishTo] = useState<Record<string, boolean>>({});
+
   // Load categories dynamically
   useEffect(() => {
     fetchCategories();
+    fetchConnectedAccounts();
   }, []);
+
+  const fetchConnectedAccounts = async () => {
+    try {
+      const response = await apiClient.get('/social-auth/accounts');
+      if (response.data) {
+        setConnectedAccounts(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch social accounts', err);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -81,6 +97,15 @@ export const Upload: React.FC = () => {
 
       if (mediaFile) {
         formData.append('media', mediaFile);
+      }
+
+      // Add cross-publish platforms
+      const selectedPlatforms = Object.entries(publishTo)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([platform]) => platform);
+      
+      if (selectedPlatforms.length > 0) {
+        formData.append('publishTo', JSON.stringify(selectedPlatforms));
       }
 
       await apiClient.post('/posts', formData);
@@ -379,11 +404,41 @@ export const Upload: React.FC = () => {
                 )}
               </div>
 
+              {/* Cross-Publish To */}
+              {connectedAccounts && Object.values(connectedAccounts).some(v => v === true) && (
+                <div className="border-t border-slate-100 dark:border-slate-800/40 pt-4 space-y-3">
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Share2 className="w-4 h-4 text-slate-400" />
+                    Cross-Publish To
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(connectedAccounts).map(([platform, isConnected]) => {
+                      if (!isConnected) return null;
+                      const isSelected = publishTo[platform] || false;
+                      return (
+                        <button
+                          key={platform}
+                          type="button"
+                          onClick={() => setPublishTo(prev => ({ ...prev, [platform]: !isSelected }))}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition cursor-pointer capitalize ${
+                            isSelected 
+                              ? 'bg-indigo-600 border-indigo-600 text-white' 
+                              : 'bg-transparent border-slate-200 dark:border-slate-700 text-slate-500 hover:border-indigo-400'
+                          }`}
+                        >
+                          {platform}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Action Button */}
               <button
                 type="submit"
                 disabled={publishing}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl transition shadow-md shadow-indigo-500/20 disabled:opacity-75 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 hover:scale-[1.02] active:scale-[0.98] text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 disabled:opacity-75 disabled:hover:scale-100 cursor-pointer"
               >
                 {publishing ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

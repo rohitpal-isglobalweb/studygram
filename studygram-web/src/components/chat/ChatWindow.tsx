@@ -5,6 +5,7 @@ import { setActiveConversation, setMessages } from '../../features/chatSlice';
 import { ArrowLeft, Phone, Video, Info, Loader2 } from 'lucide-react';
 import { apiClient } from '../../utils/apiClient';
 import { MessageInput } from './MessageInput';
+import { Avatar } from '../Avatar';
 import { MessageBubble } from './MessageBubble';
 import { useSocket } from '../../contexts/SocketContext';
 
@@ -78,11 +79,11 @@ export const ChatWindow: React.FC<{ conversationId: number }> = ({ conversationI
 
           <div className="flex items-center gap-3 cursor-pointer">
             <div className="relative">
-              <img
-                src={conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name)}&background=6366f1&color=fff`}
-                alt={conversation.name}
-                className="w-10 h-10 rounded-full object-cover"
-              />
+            <Avatar
+              src={conversation.avatar}
+              name={conversation.name}
+              className="w-10 h-10"
+            />
               {isOnline && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-slate-900 rounded-full" />
               )}
@@ -121,10 +122,10 @@ export const ChatWindow: React.FC<{ conversationId: number }> = ({ conversationI
           <>
             {/* View Profile prompt */}
             <div className="flex flex-col items-center justify-center py-8 mb-4">
-              <img
-                src={conversation.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(conversation.name)}&background=6366f1&color=fff`}
-                alt={conversation.name}
-                className="w-24 h-24 rounded-full object-cover mb-4 shadow-md"
+              <Avatar
+                src={conversation.avatar}
+                name={conversation.name}
+                className="w-24 h-24 mb-4 shadow-md"
               />
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">{conversation.name}</h2>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">StudyGram • {conversation.type === 'private' ? 'Personal' : 'Group'}</p>
@@ -167,7 +168,7 @@ export const ChatWindow: React.FC<{ conversationId: number }> = ({ conversationI
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 sticky bottom-0 z-10">
+      <div className="flex-shrink-0 bg-white dark:bg-slate-900 p-4 sticky bottom-0 z-10">
         <MessageInput conversationId={conversationId} />
       </div>
     </div>

@@ -36,19 +36,27 @@ export class ChatService {
       ]
     });
 
-    const formatted = conversations.map(c => {
+    const formattedPromises = conversations.map(async c => {
       const participants = c.participantDetails.map(pd => pd.user);
       const otherUser = participants.find(u => u.id !== userId) || participants[0]; // Self chat fallback
       
       const lastMessage = c.messages && c.messages.length > 0 ? c.messages[0] : null;
-      let unreadCount = 0;
-      // In a real app we'd query unread count from MessageStatus, doing simplified for now
+      
+      const unreadCount = await MessageStatus.count({
+        where: { userId, seen: false },
+        include: [{
+          model: Message,
+          where: { conversationId: c.id },
+          required: true
+        }]
+      });
       
       return {
         id: c.id,
         type: c.type,
         name: c.type === 'private' ? otherUser.name : c.name,
         avatar: c.type === 'private' ? otherUser.profileImage : c.avatarUrl,
+        unreadCount,
         lastMessage: lastMessage ? {
           text: lastMessage.messageType === 'text' ? lastMessage.message : `[${lastMessage.messageType}]`,
           createdAt: lastMessage.createdAt,
@@ -58,7 +66,7 @@ export class ChatService {
       };
     });
 
-    return formatted.sort((a, b) => {
+    return (await Promise.all(formattedPromises)).sort((a, b) => {
       const t1 = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
       const t2 = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
       return t2 - t1;

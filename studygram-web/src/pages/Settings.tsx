@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lock,
   Share2,
@@ -10,6 +10,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import { apiClient } from '../utils/apiClient';
 
 export const Settings: React.FC = () => {
   // Privacy States
@@ -24,16 +25,46 @@ export const Settings: React.FC = () => {
   const [connected, setConnected] = useState({
     instagram: false,
     facebook: false,
-    linkedin: true,
+    linkedin: false,
     youtube: false,
-    x: false,
+    twitter: false,
   });
 
-  const toggleConnection = (key: keyof typeof connected) => {
-    setConnected(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  useEffect(() => {
+    fetchConnectedAccounts();
+  }, []);
+
+  const fetchConnectedAccounts = async () => {
+    try {
+      const response = await apiClient.get('/social-auth/accounts');
+      if (response.data) {
+        setConnected({
+          instagram: response.data.instagram,
+          facebook: response.data.facebook,
+          linkedin: response.data.linkedin,
+          youtube: response.data.youtube,
+          twitter: response.data.twitter,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch social accounts', err);
+    }
+  };
+
+  const toggleConnection = async (key: keyof typeof connected) => {
+    try {
+      if (connected[key]) {
+        // Disconnect
+        await apiClient.delete(`/social-auth/disconnect/${key}`);
+      } else {
+        // Connect
+        await apiClient.post(`/social-auth/connect/${key}`);
+      }
+      // Re-fetch to ensure sync with backend
+      fetchConnectedAccounts();
+    } catch (err) {
+      console.error(`Failed to toggle connection for ${key}`, err);
+    }
   };
 
   return (
@@ -96,15 +127,15 @@ export const Settings: React.FC = () => {
                     <span className="text-[10px] text-slate-500">Connect to share posts to your stories.</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggleConnection('instagram')}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer ${
-                    connected.instagram
-                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
-                      : 'bg-indigo-600 text-white'
-                  }`}
-                >
+                  <button
+                    type="button"
+                    onClick={() => toggleConnection('instagram')}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl transition-all hover:scale-[1.05] active:scale-[0.95] cursor-pointer ${
+                      connected.instagram
+                        ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
+                        : 'bg-indigo-600 text-white'
+                    }`}
+                  >
                   {connected.instagram ? 'Disconnect' : 'Connect'}
                 </button>
               </div>
@@ -118,15 +149,15 @@ export const Settings: React.FC = () => {
                     <span className="text-[10px] text-slate-500">Connect to publish notes & certifications.</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggleConnection('linkedin')}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer ${
-                    connected.linkedin
-                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
-                      : 'bg-indigo-600 text-white'
-                  }`}
-                >
+                  <button
+                    type="button"
+                    onClick={() => toggleConnection('linkedin')}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl transition-all hover:scale-[1.05] active:scale-[0.95] cursor-pointer ${
+                      connected.linkedin
+                        ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
+                        : 'bg-indigo-600 text-white'
+                    }`}
+                  >
                   {connected.linkedin ? 'Disconnect' : 'Connect'}
                 </button>
               </div>
@@ -140,15 +171,15 @@ export const Settings: React.FC = () => {
                     <span className="text-[10px] text-slate-500">Connect to publish to study group pages.</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggleConnection('facebook')}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer ${
-                    connected.facebook
-                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
-                      : 'bg-indigo-600 text-white'
-                  }`}
-                >
+                  <button
+                    type="button"
+                    onClick={() => toggleConnection('facebook')}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl transition-all hover:scale-[1.05] active:scale-[0.95] cursor-pointer ${
+                      connected.facebook
+                        ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
+                        : 'bg-indigo-600 text-white'
+                    }`}
+                  >
                   {connected.facebook ? 'Disconnect' : 'Connect'}
                 </button>
               </div>
@@ -162,15 +193,15 @@ export const Settings: React.FC = () => {
                     <span className="text-[10px] text-slate-500">Connect to link lecture video playlists.</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => toggleConnection('youtube')}
-                  className={`text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer ${
-                    connected.youtube
-                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
-                      : 'bg-indigo-600 text-white'
-                  }`}
-                >
+                  <button
+                    type="button"
+                    onClick={() => toggleConnection('youtube')}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl transition-all hover:scale-[1.05] active:scale-[0.95] cursor-pointer ${
+                      connected.youtube
+                        ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 border border-rose-200 dark:border-rose-800'
+                        : 'bg-indigo-600 text-white'
+                    }`}
+                  >
                   {connected.youtube ? 'Disconnect' : 'Connect'}
                 </button>
               </div>

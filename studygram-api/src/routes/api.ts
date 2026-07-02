@@ -11,6 +11,7 @@ import { chatController } from '../controllers/ChatController';
 import { authenticateJWT, authorizeRoles, optionalAuthenticateJWT } from '../middlewares/authMiddleware';
 import { apiRateLimiter } from '../middlewares/rateLimiter';
 import { upload } from '../middlewares/uploadMiddleware';
+import { SocialAuthController } from '../controllers/SocialAuthController';
 
 const router = express.Router();
 
@@ -901,5 +902,10 @@ router.get('/chat/search-users', authenticateJWT, chatController.searchUsers);
  *       - bearerAuth: []
  */
 router.post('/chat/upload', authenticateJWT, upload.single('file'), chatController.uploadAttachment);
+
+// Social Auth routes
+router.get('/social-auth/accounts', authenticateJWT, SocialAuthController.getAccounts);
+router.post('/social-auth/connect/:platform', authenticateJWT, SocialAuthController.connectAccount);
+router.delete('/social-auth/disconnect/:platform', authenticateJWT, SocialAuthController.disconnectAccount);
 
 export default router;

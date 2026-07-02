@@ -264,12 +264,14 @@ export const Profile: React.FC = () => {
           {profileData?.coverImage || profileData?.coverUrl ? (
             <img src={profileData.coverImage || profileData.coverUrl} alt="Cover" className="w-full h-full object-cover" />
           ) : null}
-          <button 
-            onClick={() => document.getElementById('cover-upload')?.click()}
-            className="absolute right-4 bottom-4 p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 cursor-pointer hover:scale-105 transition"
-          >
-            <Camera className="w-4 h-4" />
-          </button>
+          {isCurrentUser && (
+            <button 
+              onClick={() => document.getElementById('cover-upload')?.click()}
+              className="absolute right-4 bottom-4 p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 cursor-pointer hover:scale-105 transition"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Profile Info Details */}
@@ -281,12 +283,14 @@ export const Profile: React.FC = () => {
               name={profileData?.name || profileData?.fullName || 'User'}
               className="w-24 h-24 md:w-32 md:h-32 border-4 border-white dark:border-slate-900 shadow-lg group-hover:scale-105 transition-transform duration-300"
             />
-            <button 
-              onClick={() => document.getElementById('avatar-upload')?.click()}
-              className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 rounded-full text-white ring-2 ring-white dark:ring-slate-900 cursor-pointer hover:scale-110 hover:bg-indigo-500 shadow-sm transition-all"
-            >
-              <Camera className="w-3.5 h-3.5" />
-            </button>
+            {isCurrentUser && (
+              <button 
+                onClick={() => document.getElementById('avatar-upload')?.click()}
+                className="absolute bottom-1 right-1 p-1.5 bg-indigo-600 rounded-full text-white ring-2 ring-white dark:ring-slate-900 cursor-pointer hover:scale-110 hover:bg-indigo-500 shadow-sm transition-all"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

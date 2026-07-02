@@ -43,7 +43,7 @@ export const Chat: React.FC = () => {
   }, [socket, isConnected, conversations]);
 
   return (
-    <div className="flex w-full h-full bg-white dark:bg-slate-950">
+    <div className="flex w-full h-full bg-white dark:bg-slate-950 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
       {/* Left Sidebar - Conversations */}
       <div className={`w-full md:w-80 lg:w-96 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 ${activeConversationId ? 'hidden md:block' : 'block'}`}>
         <ConversationList loading={loading} />

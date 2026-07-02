@@ -3,6 +3,7 @@ import { Server as HttpServer } from 'http';
 import jwt from 'jsonwebtoken';
 import { User } from '../database/models/User';
 import { Message } from '../database/models/Message';
+import { MessageStatus } from '../database/models/MessageStatus';
 import { ConversationParticipant } from '../database/models/ConversationParticipant';
 
 export class SocketServer {
@@ -80,11 +81,17 @@ export class SocketServer {
             include: [{ model: User, attributes: ['id', 'username', 'profileImage'] }]
           });
 
+          // Create message statuses for all other participants
+          const participants = await ConversationParticipant.findAll({ where: { conversationId: data.conversationId } });
+          const statusPromises = participants
+            .filter(p => p.userId !== user.id)
+            .map(p => MessageStatus.create({ messageId: newMessage.id, userId: p.userId, seen: false }));
+          await Promise.all(statusPromises);
+
           // Broadcast to conversation
           this.io.to(`conversation_${data.conversationId}`).emit('new_message', messageWithSender);
           
           // Also update conversation list for all participants
-          const participants = await ConversationParticipant.findAll({ where: { conversationId: data.conversationId } });
           participants.forEach(p => {
             this.io.to(`user_${p.userId}`).emit('conversation_updated', {
               conversationId: data.conversationId,
@@ -113,7 +120,18 @@ export class SocketServer {
       });
 
       socket.on('message_seen', async (data: { messageId?: number, conversationId: number }) => {
-        // Simplified seen tracking
+        if (data.messageId) {
+          await MessageStatus.update({ seen: true }, { where: { messageId: data.messageId, userId: user.id } });
+        } else {
+          // Find all unread messages in conversation for this user and mark as seen
+          const messages = await Message.findAll({ where: { conversationId: data.conversationId } });
+          const messageIds = messages.map(m => m.id);
+          if (messageIds.length > 0) {
+            await MessageStatus.update({ seen: true }, { where: { messageId: messageIds, userId: user.id, seen: false } });
+          }
+        }
+        
+        // Broadcast seen tracking
         socket.to(`conversation_${data.conversationId}`).emit('message_seen', {
           conversationId: data.conversationId,
           messageId: data.messageId,

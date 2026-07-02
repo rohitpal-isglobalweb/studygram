@@ -6,7 +6,7 @@ export class ProfileController {
   async getProfile(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { username } = req.params;
-      const profile = await profileService.getProfile(username);
+      const profile = await profileService.getProfile(username, req.user?.id);
       res.status(200).json({
         status: 'success',
         data: profile

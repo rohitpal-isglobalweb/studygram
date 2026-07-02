@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../features/store';
-import { addMessage, updateConversation, setTyping, setOnlineStatus, setMessageSeen } from '../features/chatSlice';
+import { addMessage, updateConversationList, setTyping, setOnlineStatus, setMessageSeen } from '../features/chatSlice';
 import type { ChatMessage } from '../features/chatSlice';
 
 interface SocketContextType {
@@ -46,7 +46,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     newSocket.on('conversation_updated', (data: { conversationId: number, lastMessage: ChatMessage }) => {
-      dispatch(updateConversation(data));
+      dispatch(updateConversationList(data));
     });
 
     newSocket.on('typing', (data: { conversationId: number, username: string }) => {

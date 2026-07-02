@@ -22,6 +22,7 @@ export interface Conversation {
   type: 'private' | 'group';
   name: string;
   avatar?: string;
+  unreadCount?: number;
   lastMessage: {
     text: string;
     createdAt: string;
@@ -60,6 +61,12 @@ export const chatSlice = createSlice({
     },
     setActiveConversation: (state, action: PayloadAction<number | null>) => {
       state.activeConversationId = action.payload;
+      if (action.payload !== null) {
+        const existing = state.conversations.find(c => c.id === action.payload);
+        if (existing) {
+          existing.unreadCount = 0;
+        }
+      }
     },
     setMessages: (state, action: PayloadAction<{ conversationId: number; messages: ChatMessage[] }>) => {
       state.messages[action.payload.conversationId] = action.payload.messages;
@@ -75,28 +82,40 @@ export const chatSlice = createSlice({
       }
       
       // Update last message in conversations list
-      const convIndex = state.conversations.findIndex(c => c.id === convId);
-      if (convIndex > -1) {
-        state.conversations[convIndex].lastMessage = {
+      const existing = state.conversations.find(c => c.id === convId);
+      if (existing) {
+        existing.lastMessage = {
           text: action.payload.messageType === 'text' ? action.payload.message : `[${action.payload.messageType}]`,
           createdAt: action.payload.createdAt,
           senderId: action.payload.senderId
         };
+        if (state.activeConversationId !== action.payload.conversationId) {
+          existing.unreadCount = (existing.unreadCount || 0) + 1;
+        }
         // Move to top
-        const [conv] = state.conversations.splice(convIndex, 1);
-        state.conversations.unshift(conv);
+        state.conversations = [
+          existing,
+          ...state.conversations.filter(c => c.id !== convId)
+        ];
       }
     },
-    updateConversation: (state, action: PayloadAction<{ conversationId: number; lastMessage: ChatMessage }>) => {
-      const convIndex = state.conversations.findIndex(c => c.id === action.payload.conversationId);
-      if (convIndex > -1) {
-        state.conversations[convIndex].lastMessage = {
+    updateConversationList: (state, action: PayloadAction<{ conversationId: number; lastMessage: ChatMessage; unreadCount?: number }>) => {
+      const existing = state.conversations.find(c => c.id === action.payload.conversationId);
+      if (existing) {
+        existing.lastMessage = {
           text: action.payload.lastMessage.messageType === 'text' ? action.payload.lastMessage.message : `[${action.payload.lastMessage.messageType}]`,
           createdAt: action.payload.lastMessage.createdAt,
           senderId: action.payload.lastMessage.senderId
         };
-        const [conv] = state.conversations.splice(convIndex, 1);
-        state.conversations.unshift(conv);
+        if (action.payload.unreadCount !== undefined) {
+          existing.unreadCount = action.payload.unreadCount;
+        } else if (state.activeConversationId !== action.payload.conversationId) {
+          existing.unreadCount = (existing.unreadCount || 0) + 1;
+        }
+        state.conversations = [
+          existing,
+          ...state.conversations.filter(c => c.id !== action.payload.conversationId)
+        ];
       }
     },
     setTyping: (state, action: PayloadAction<{ conversationId: number; username: string | null }>) => {
@@ -131,7 +150,7 @@ export const {
   setActiveConversation, 
   setMessages, 
   addMessage, 
-  updateConversation,
+  updateConversationList,
   setTyping, 
   setOnlineStatus,
   setMessageSeen

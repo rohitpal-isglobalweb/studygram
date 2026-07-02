@@ -1,4 +1,5 @@
 import React from 'react';
+import { Avatar } from '../Avatar';
 import type { ChatMessage } from '../../features/chatSlice';
 
 export const MessageBubble: React.FC<{ message: ChatMessage; isMe: boolean; showAvatar: boolean }> = ({ message, isMe, showAvatar }) => {
@@ -7,10 +8,10 @@ export const MessageBubble: React.FC<{ message: ChatMessage; isMe: boolean; show
       {!isMe && (
         <div className="w-8 flex-shrink-0">
           {showAvatar && (
-            <img 
-              src={message.sender.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.sender.username)}&background=6366f1&color=fff`}
-              alt={message.sender.username}
-              className="w-8 h-8 rounded-full object-cover"
+            <Avatar
+              src={message.sender.profileImage}
+              name={message.sender.username}
+              className="w-8 h-8"
             />
           )}
         </div>

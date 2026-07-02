@@ -10,7 +10,6 @@ import {
   Home,
   Search,
   PlusSquare,
-  Bookmark,
   Bell,
   Settings,
   LogOut,
@@ -39,14 +38,17 @@ export const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  
+
   const { user } = useSelector((state: RootState) => state.auth);
   const { themeMode } = useSelector((state: RootState) => state.ui);
+  const { conversations } = useSelector((state: RootState) => state.chat);
   
+  const totalUnreadChats = conversations.reduce((acc, curr) => acc + (curr.unreadCount || 0), 0);
+
   const sidebarOpen = true;
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -71,7 +73,7 @@ export const MainLayout: React.FC = () => {
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-  
+
   const handleNotifOpen = (event: React.MouseEvent<HTMLElement>) => {
     setNotifAnchorEl(event.currentTarget);
     // Mark notifications read on the backend
@@ -104,9 +106,16 @@ export const MainLayout: React.FC = () => {
 
   if (user) {
     menuItems.push(
-      { name: 'Messages', icon: <MessageCircle className="w-5 h-5" />, path: '/chat' },
+      { 
+        name: 'Messages', 
+        icon: (
+          <Badge color="error" variant="dot" invisible={totalUnreadChats === 0}>
+            <MessageCircle className="w-5 h-5" />
+          </Badge>
+        ), 
+        path: '/chat' 
+      },
       { name: 'Upload Center', icon: <PlusSquare className="w-5 h-5" />, path: '/upload' },
-      { name: 'Saved Content', icon: <Bookmark className="w-5 h-5" />, path: '/saved' },
       { name: 'Profile', icon: <User className="w-5 h-5" />, path: `/profile` },
       { name: 'Settings', icon: <Settings className="w-5 h-5" />, path: '/settings' }
     );
@@ -117,20 +126,19 @@ export const MainLayout: React.FC = () => {
     if (location.pathname === '/search') return 'Explore';
     if (location.pathname === '/reels') return 'Study Reels';
     if (location.pathname === '/upload') return 'New Post';
-    if (location.pathname === '/saved') return 'Saved Content';
     if (location.pathname.startsWith('/profile')) return user?.username || 'Profile';
     if (location.pathname === '/settings') return 'Settings';
     return 'StudyGram';
   };
 
   return (
-    <div className={`min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 smooth-transition ${themeMode === 'dark' ? 'dark-theme' : ''}`}>
+    <div className={`h-[100dvh] w-full flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 smooth-transition ${themeMode === 'dark' ? 'dark-theme' : ''}`}>
       {/* Top Navbar for Mobile */}
-      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-[110]">
-        <h1 className={`text-xl font-bold font-heading ${location.pathname === '/' ? 'bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent' : 'text-slate-800 dark:text-slate-100'}`}>
+      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 sticky top-0 z-[110] shadow-sm">
+        <h1 className={`text-xl font-extrabold font-heading tracking-tight ${location.pathname === '/' ? 'bg-gradient-to-r from-indigo-600 to-fuchsia-600 bg-clip-text text-transparent' : 'text-slate-800 dark:text-slate-100'}`}>
           {getMobileHeaderTitle()}
         </h1>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           {location.pathname.startsWith('/profile') && user && (
             <>
               <IconButton size="small" onClick={() => navigate('/settings')}>
@@ -167,11 +175,10 @@ export const MainLayout: React.FC = () => {
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                }`}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
+                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                  }`}
               >
                 {item.icon}
                 {item.name}
@@ -195,7 +202,7 @@ export const MainLayout: React.FC = () => {
                   <p className="text-xs text-slate-500 truncate">@{user.username}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <IconButton size="small" onClick={() => dispatch(toggleTheme())}>
                   {themeMode === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
@@ -229,23 +236,22 @@ export const MainLayout: React.FC = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col md:h-screen md:overflow-y-auto overflow-x-hidden">
-        <div className={location.pathname.startsWith('/chat') ? "w-full h-full flex-1" : "max-w-7xl mx-auto w-full p-4 md:p-8 flex-1 pb-20 md:pb-8"}>
+      <main className="flex-1 min-w-0 flex flex-col h-full overflow-y-auto overflow-x-hidden relative">
+        <div className={location.pathname.startsWith('/chat') ? "w-full h-full flex-1" : "max-w-7xl mx-auto w-full p-4 sm:p-6 md:p-8 flex-1 pb-24 md:pb-8"}>
           <Outlet />
         </div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden flex items-center justify-around bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 fixed bottom-0 left-0 right-0 py-2 z-[110]">
+      <nav className="md:hidden flex items-center justify-around bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-800/50 fixed bottom-0 left-0 right-0 py-2.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] z-[110] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         {menuItems.filter(item => item.path !== '/search' && item.path !== '/saved').slice(0, 5).map((item) => {
           const isActive = location.pathname.startsWith(item.path) && (item.path !== '/' || location.pathname === '/');
           return (
             <button
               key={item.name}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center gap-0.5 p-2 transition-all ${
-                isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'
-              }`}
+              className={`flex flex-col items-center gap-0.5 p-2 transition-all ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400'
+                }`}
             >
               {item.icon}
               <span className="text-[10px] font-medium">{item.name.split(' ')[0]}</span>
@@ -278,7 +284,7 @@ export const MainLayout: React.FC = () => {
           <span className="font-bold font-heading">Notifications</span>
           {unreadCount > 0 && <span className="text-xs text-indigo-500 font-semibold">{unreadCount} new</span>}
         </div>
-        
+
         {notifications.length === 0 ? (
           <div className="p-4 text-center text-sm text-slate-500">
             No notifications yet

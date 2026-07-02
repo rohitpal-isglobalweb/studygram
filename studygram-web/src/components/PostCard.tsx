@@ -202,7 +202,7 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   };
 
   return (
-    <article className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <article className="group/card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-500">
       {/* Post Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-3">
@@ -280,23 +280,23 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           </div>
         </div>
       ) : post.type === 'video' ? (
-        <div className="relative bg-black flex items-center justify-center w-full max-h-[600px]">
-          <video src={post.mediaUrl} controls className="w-full h-full max-h-[600px] object-contain" />
+        <div className="relative bg-black flex items-center justify-center w-full max-h-[600px] overflow-hidden">
+          <video src={post.mediaUrl} controls className="w-full h-full max-h-[600px] object-contain group-hover/card:scale-[1.02] transition-transform duration-700" />
         </div>
       ) : (
         <div className="relative w-full max-h-[600px] overflow-hidden bg-slate-50 dark:bg-slate-950 flex justify-center border-y border-slate-100 dark:border-slate-800">
-          <img src={post.mediaUrl} alt="Post media" className="w-full h-full max-h-[600px] object-cover" />
+          <img src={post.mediaUrl} alt="Post media" className="w-full h-full max-h-[600px] object-cover group-hover/card:scale-[1.02] transition-transform duration-700" />
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-1 md:gap-2">
+      <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center gap-2">
           {user ? (
             <button
               onClick={handleLike}
-              className={`flex items-center justify-center gap-2 text-xs font-bold rounded-xl px-3 py-2 transition-colors ${
-                hasLiked ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              className={`flex items-center justify-center gap-2 text-xs font-bold rounded-2xl px-4 py-2.5 transition-all duration-300 ${
+                hasLiked ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 hover:shadow-lg hover:shadow-rose-500/20' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400'
               }`}
             >
               <Heart className={`w-5 h-5 ${hasLiked ? 'fill-current text-rose-500' : 'text-slate-500 dark:text-slate-400'}`} />
@@ -310,39 +310,40 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
           )}
           
           {user ? (
-            <button
-              onClick={() => setShowComments(true)}
-              className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl px-3 py-2 transition-colors"
-            >
-              <MessageCircle className="w-5 h-5 text-slate-500 dark:text-slate-400 hover:text-indigo-600" />
-              {commentsCount}
-            </button>
+            <>
+              <button
+                onClick={() => setShowComments(true)}
+                className="flex items-center justify-center gap-2 text-xs font-bold rounded-2xl px-4 py-2.5 text-slate-600 dark:text-slate-400 transition-all duration-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:text-indigo-600 dark:hover:text-indigo-400"
+              >
+                <MessageCircle className="w-5 h-5 text-slate-500 dark:text-slate-400 hover:text-indigo-600 transition-colors" />
+                {commentsCount}
+              </button>
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 text-xs font-bold rounded-2xl px-4 py-2.5 text-slate-600 dark:text-slate-400 transition-all duration-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 dark:hover:text-emerald-400 hidden sm:flex"
+              >
+                <Share2 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                Share
+              </button>
+            </>
           ) : (
-            <div className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 rounded-xl px-3 py-2">
-              <MessageCircle className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-              {commentsCount}
+            <div className="flex gap-2">
+              <span className="flex items-center gap-2 text-xs font-bold text-slate-500 px-3 py-2"><Heart className="w-5 h-5" /> {likesCount}</span>
+              <span className="flex items-center gap-2 text-xs font-bold text-slate-500 px-3 py-2"><MessageCircle className="w-5 h-5" /> {commentsCount}</span>
             </div>
-          )}
-
-          {user && (
-            <button
-              onClick={handleShare}
-              className="flex items-center justify-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-xl px-3 py-2 transition-colors hidden sm:flex"
-            >
-              <Share2 className="w-5 h-5 text-slate-500 dark:text-slate-400 hover:text-emerald-600" />
-              Share
-            </button>
           )}
         </div>
 
         {user && (
-          <button
+          <button 
             onClick={handleSave}
-            className={`flex items-center justify-center p-2 rounded-xl transition-colors ${
-              hasSaved ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            className={`p-2.5 rounded-2xl transition-all duration-300 ${
+              hasSaved 
+                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-950/50 hover:shadow-lg hover:shadow-amber-500/20' 
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-amber-500 dark:hover:text-amber-400'
             }`}
           >
-            <Bookmark className={`w-5 h-5 ${hasSaved ? 'fill-current text-indigo-600' : 'text-slate-500 dark:text-slate-400'}`} />
+            <Bookmark className={`w-5 h-5 ${hasSaved ? 'fill-current text-amber-500' : 'text-slate-500 dark:text-slate-400'}`} />
           </button>
         )}
       </div>

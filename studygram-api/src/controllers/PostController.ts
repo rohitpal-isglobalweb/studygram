@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { postService } from '../services/PostService';
 import { AuthRequest } from '../middlewares/authMiddleware';
+import { SocialMediaService } from '../services/SocialMediaService';
 
 export class PostController {
   async create(req: AuthRequest, res: Response, next: NextFunction) {
@@ -9,6 +10,23 @@ export class PostController {
         ...req.body,
         userId: req.user!.id
       }, req.file);
+
+      // Trigger cross-publish if requested
+      if (req.body.publishTo) {
+        let platforms: string[] = [];
+        try {
+          // If it's sent as a JSON string (e.g., from FormData), parse it
+          platforms = typeof req.body.publishTo === 'string' 
+            ? JSON.parse(req.body.publishTo) 
+            : req.body.publishTo;
+        } catch(e) {
+          console.warn('Could not parse publishTo');
+        }
+
+        if (Array.isArray(platforms) && platforms.length > 0) {
+          SocialMediaService.publishPost(req.user!.id, post, platforms);
+        }
+      }
 
       res.status(211).json({
         status: 'success',
